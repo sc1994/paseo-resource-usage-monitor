@@ -210,13 +210,14 @@ select{
 }
 .process-heading{
   display:flex;
-  align-items:start;
+  align-items:center;
   justify-content:space-between;
   gap:10px
 }
-.process-heading .section-caption{
-  margin-bottom:18px
-}
+.process-heading > div{display:flex;align-items:center;gap:8px}
+.details-toggle{border:0;background:none;color:var(--green);padding:6px 0;min-height:32px;font-size:12px}
+.details{padding:6px 0 10px;font-size:12px;color:var(--muted)}
+.details p{margin:3px 0}
 .count{
   font-size:12px;
   color:var(--muted);
@@ -228,7 +229,7 @@ select{
   table-layout:fixed
 }
 .table th{
-  height:37px;
+  height:32px;
   border-bottom:1px solid var(--line);
   color:var(--muted);
   font-size:12px;
@@ -266,7 +267,7 @@ select{
 .table td{
   text-align:right;
   border-bottom:1px solid #303632;
-  height:58px;
+  height:40px;
   font-size:13px
 }
 .name{
@@ -300,8 +301,8 @@ select{
   background:transparent;
   color:#d9e1dc;
   border-radius:6px;
-  padding:6px 11px;
-  min-height:34px
+  padding:3px 10px;
+  min-height:28px
 }
 .release:hover:not(:disabled){
   border-color:#bc7973;
@@ -544,7 +545,7 @@ dialog::backdrop{
   .table tr{
     position:relative;
     border-bottom:1px solid var(--line);
-    padding:14px 0
+    padding:4px 0
   }
   .table td{
     height:auto;
@@ -553,7 +554,7 @@ dialog::backdrop{
   }
   .table td:first-child{
     padding-right:90px;
-    margin-bottom:12px
+    margin-bottom:3px
   }
   .table td.resource{
     display:inline-block;
@@ -563,10 +564,10 @@ dialog::backdrop{
   }
   .table td.resource:before{
     content:attr(data-label);
-    display:block;
+    display:inline;
     font-size:11px;
     color:var(--muted);
-    margin-bottom:3px
+    margin-right:4px
   }
   .table td.action{
     position:absolute;
@@ -574,6 +575,7 @@ dialog::backdrop{
     top:10px;
     text-align:right!important
   }
+  .details-toggle{min-height:44px}
   .release{
     min-height:44px
   }
@@ -597,7 +599,7 @@ dialog::backdrop{
 }
 </style></head><body>
 <div class="preview"><div class="preview-label"><strong>Host monitor</strong>　/　交互设计稿 · 示例数据</div><label class="preview-control">预览状态 <select id="scenario"><option value="normal">正常</option><option value="gpu">GPU 未检测到 / 不支持采集</option><option value="network">网络采集权限不足</option><option value="loading">加载中</option><option value="error">采集失败</option><option value="empty">空列表</option><option value="permission">释放权限不足</option><option value="exited">进程已退出</option><option value="failed">结束失败</option></select></label></div>
-<main class="shell"><header class="host-head"><div class="host-title"><div class="host-icon" aria-hidden="true">▦</div><div><h1>ai-vm</h1><div class="sub">Linux · 12 核 · 运行 3 天 19 小时 · 负载 4.51 / 3.26 / 2.24</div></div></div><div class="status"><span class="dot"></span>采样正常</div></header><div class="tabs" role="tablist" aria-label="主机监控视图"><button role="tab" aria-selected="true" data-tab="overview">主机概览</button><button role="tab" aria-selected="false" data-tab="process">进程</button></div><div class="columns"><section class="overview" id="overview"><h2 class="section-title">主机概览</h2><p class="section-caption">最近 60 秒</p><div id="metrics"></div><div class="disk"><div class="metric-head"><span>▤　磁盘 · 186.4 GB / 320 GB</span><strong class="mono">58%</strong></div><div class="disk-row"><div class="disk-label"><span>/</span><span class="mono">116.4 / 200 GB · 58%</span></div><div class="meter"><i style="width:58%"></i></div></div><div class="disk-row"><div class="disk-label"><span>/data</span><span class="mono">70 / 120 GB · 58%</span></div><div class="meter"><i style="width:58%"></i></div></div></div></section><section class="process mobile-hidden" id="process"><div class="process-heading"><div><h2 class="section-title">高占用进程</h2><p class="section-caption">按资源占用查看当前进程</p></div><span class="count" id="count"></span></div><div id="availability" class="availability" aria-live="polite"></div><div class="mobile-sort" id="mobile-sort"><span>排序</span></div><div id="content"></div><p class="note">CPU 100% 表示占用 1 个核心；网络按下载与上传合计排序。</p><div id="toast" aria-live="polite"></div></section></div></main>
+<main class="shell"><header class="host-head"><div class="host-title"><div class="host-icon" aria-hidden="true">▦</div><div><h1>ai-vm</h1><div class="sub">Linux · 12 核 · 运行 3 天 19 小时 · 负载 4.51 / 3.26 / 2.24</div></div></div><div class="status"><span class="dot"></span>采样正常</div></header><div class="tabs" role="tablist" aria-label="主机监控视图"><button role="tab" aria-selected="true" data-tab="overview">主机概览</button><button role="tab" aria-selected="false" data-tab="process">进程</button></div><div class="columns"><section class="overview" id="overview"><h2 class="section-title">主机概览</h2><p class="section-caption">最近 60 秒</p><div id="metrics"></div><div class="disk"><div class="metric-head"><span>▤　磁盘 · 186.4 GB / 320 GB</span><strong class="mono">58%</strong></div><div class="disk-row"><div class="disk-label"><span>/</span><span class="mono">116.4 / 200 GB · 58%</span></div><div class="meter"><i style="width:58%"></i></div></div><div class="disk-row"><div class="disk-label"><span>/data</span><span class="mono">70 / 120 GB · 58%</span></div><div class="meter"><i style="width:58%"></i></div></div></div></section><section class="process mobile-hidden" id="process"><div class="process-heading"><div><h2 class="section-title">高占用进程</h2><span class="count" id="count"></span></div><button class="details-toggle" id="details-toggle" aria-expanded="false" aria-controls="collection-details">采集说明 ↓</button></div><div class="details" id="collection-details" hidden><p>-- 表示数据不可用。CPU 100% 表示占用 1 个核心；网络为可归属的可见 TCP 持续连接上下行总速率，不含 UDP 和短连接。</p><div id="availability" class="availability" aria-live="polite"></div><p id="protection-details"></p></div><div class="mobile-sort" id="mobile-sort"><span>排序</span></div><div id="content"></div><div id="toast" aria-live="polite"></div></section></div></main>
 <div class="anchor" aria-label="主机状态摘要"><span>▦ CPU <b class="mono">68%</b><i class="tiny-meter"></i></span><span>▥ RAM <b class="mono">68%</b><i class="tiny-meter"></i></span><span>▤ 磁盘 <b class="mono">58%</b><i class="tiny-meter"></i></span><span>↓↑ 网络 <b class="mono">28.4 / 12.4 MB/s</b></span></div>
 <dialog id="confirm" aria-labelledby="dialog-title"><div class="dialog-body"><h2 id="dialog-title">结束进程并释放资源？</h2><p class="warning">将中断该进程正在执行的任务，未保存的数据可能丢失。</p><div class="detail" id="details"></div><p class="dialog-error" id="dialog-error" role="alert" hidden></p></div><div class="dialog-actions"><button class="cancel" id="cancel" autofocus>取消</button><button class="danger" id="submit">结束进程</button></div></dialog>
 <script>
@@ -608,7 +610,7 @@ const initial=[
 {name:'rsync',pid:5614,user:'ai',cmd:'rsync -av /data/models/ backup:/models/',cpu:32.1,gpu:null,down:.5,up:8.7},
 {name:'postgres',pid:1124,user:'postgres',cmd:'/usr/lib/postgresql/16/bin/postgres -D /var/lib/postgresql/16/main',cpu:42.7,gpu:null,down:.3,up:.2},
 {name:'paseo daemon',pid:1026,user:'ai',cmd:'paseo daemon start',cpu:5.6,gpu:null,down:.1,up:.1,protected:true},
-{name:'code-server',pid:3402,user:'ai',cmd:'code-server --bind-addr 127.0.0.1:8080 /workspace',cpu:16.4,gpu:null,down:.2,up:.3},
+{name:'code-server',pid:3402,user:'ai',cmd:'code-server --bind-addr 127.0.0.1:8080 /workspace',cpu:0,gpu:0,down:0,up:0},
 {name:'python worker',pid:7310,user:'ai',cmd:'python worker.py --queue inference',cpu:73.8,gpu:18.2,down:1.2,up:.4}];
 let processes=initial.map(p=>({...p})),sortKey='cpu',direction='desc',selected=null,opener=null,pending=false;
 const $=id=>document.getElementById(id),scenario=$('scenario');
@@ -647,22 +649,24 @@ function sortButton(key,label){
   return `<button class="sort ${sortKey===key?'active':''}" data-sort="${key}" ${unavailable?'disabled title="该资源未采集"':''}>${label} ${sortKey===key?(direction==='desc'?'↓':'↑'):'↕'}</button>`}
 
 function format(v,suffix){
-  return v==null?'<span class="na">不可用</span>':`<span class="mono value ${v>=70?'high':''}">${v.toFixed(1)}${suffix}</span>`}
+  return v==null?'<span class="na">--</span>':`<span class="mono value ${v>=70?'high':''}">${v.toFixed(1)}${suffix}</span>`}
 
 function render(){
   const state=scenario.value,content=$('content'),mobile=$('mobile-sort');
   $('availability').textContent=state==='gpu'?'GPU 未检测到或不支持进程采集。':state==='network'?'网络进程采集权限不足。':'';
   mobile.innerHTML='<span>排序</span>'+[['cpu','CPU'],['gpu','GPU'],['network','网络']].map(([k,l])=>sortButton(k,l)).join('');
-  $('count').textContent=(state==='empty'?0:processes.length)+' 个进程';
+  $('count').textContent=(state==='empty'?0:processes.length)+' / '+(state==='empty'?0:processes.length);
+  $('protection-details').textContent=processes.filter(p=>p.protected).map(p=>`PID ${p.pid} · ${p.name}：守护进程受保护`).join('；');
 if(state==='loading'||state==='error'||state==='empty'){content.innerHTML=state==='loading'?'<div class="message"><strong>正在采集进程数据</strong><span>请稍候</span></div>':state==='error'?'<div class="message"><strong>进程采集失败</strong><span>暂时无法获取进程数据</span><button class="retry" id="retry">重试</button></div>':'<div class="message"><strong>暂无进程数据</strong><span>当前没有可显示的进程</span></div>';
   if($('retry'))$('retry').onclick=()=>{scenario.value='normal';
   render()};
   return}
 const rows=sorted(processes,sortKey,direction).map(p=>{
   const net=value(p,'network');
-  return `<tr><td><div class="name">${esc(p.name)}</div><div class="identity mono">PID ${p.pid} · ${esc(p.user)}</div></td><td class="resource" data-label="CPU">${format(value(p,'cpu'),'%')}</td><td class="resource" data-label="GPU">${format(value(p,'gpu'),'%')}</td><td class="resource" data-label="网络">${format(net,' MB/s')}${net==null?'':`<div class="network-detail mono">↓ ${p.down.toFixed(1)} · ↑ ${p.up.toFixed(1)}</div>`}</td><td class="action"><button class="release" data-pid="${p.pid}" ${p.protected?'disabled aria-label="守护进程受保护"':''}>释放</button>${p.protected?'<span class="protected">守护进程受保护</span>':''}</td></tr>`}).join('');
+  return `<tr><td><div class="name">${esc(p.name)}</div><div class="identity mono">PID ${p.pid} · ${esc(p.user)}</div></td><td class="resource" data-label="CPU">${format(value(p,'cpu'),'%')}</td><td class="resource" data-label="GPU">${format(value(p,'gpu'),'%')}</td><td class="resource" data-label="网络">${format(net,' MB/s')}${net==null?'':`<div class="network-detail mono">↓ ${p.down.toFixed(1)} · ↑ ${p.up.toFixed(1)}</div>`}</td><td class="action">${p.protected?'<span class="protected">受保护</span>':`<button class="release" data-pid="${p.pid}">释放</button>`}</td></tr>`}).join('');
   const aria=k=>sortKey===k?(direction==='desc'?'descending':'ascending'):'none';
   content.innerHTML=`<table class="table"><thead><tr><th scope="col">进程</th><th scope="col" aria-sort="${aria('cpu')}">${sortButton('cpu','CPU')}</th><th scope="col" aria-sort="${aria('gpu')}">${sortButton('gpu','GPU')}</th><th scope="col" aria-sort="${aria('network')}">${sortButton('network','网络')}</th><th scope="col">操作</th></tr></thead><tbody>${rows}</tbody></table>`}
+$('details-toggle').onclick=()=>{const details=$('collection-details');details.hidden=!details.hidden;$('details-toggle').setAttribute('aria-expanded',String(!details.hidden));$('details-toggle').textContent=`采集说明 ${details.hidden?'↓':'↑'}`};
 document.addEventListener('click',e=>{
   const button=e.target.closest('[data-sort]');
   if(button)sortBy(button.dataset.sort, button.closest('#mobile-sort') || $('content'));
@@ -673,7 +677,7 @@ document.addEventListener('click',e=>{
   selected=p;
   opener=release;
   $('dialog-error').hidden=true;
-  $('details').innerHTML=`<div class="detail-row"><span>进程</span><strong>${esc(p.name)} · PID ${p.pid}</strong></div><div class="detail-row"><span>用户</span><span>${esc(p.user)}</span></div><div class="detail-row"><span>命令</span><span class="mono command">${esc(p.cmd)}</span></div><div class="detail-row"><span>资源</span><span>CPU ${p.cpu.toFixed(1)}% · GPU ${value(p,'gpu')==null?'不可用':p.gpu.toFixed(1)+'%'} · 网络 ${value(p,'network')==null?'不可用':value(p,'network').toFixed(1)+' MB/s'}</span></div>`;
+  $('details').innerHTML=`<div class="detail-row"><span>进程</span><strong>${esc(p.name)} · PID ${p.pid}</strong></div><div class="detail-row"><span>用户</span><span>${esc(p.user)}</span></div><div class="detail-row"><span>命令</span><span class="mono command">${esc(p.cmd)}</span></div><div class="detail-row"><span>资源</span><span>CPU ${p.cpu==null?'--':p.cpu.toFixed(1)+'%'} · GPU ${value(p,'gpu')==null?'--':p.gpu.toFixed(1)+'%'} · 网络 ${value(p,'network')==null?'--':value(p,'network').toFixed(1)+' MB/s'}</span></div>`;
   $('confirm').showModal()});
 scenario.addEventListener('change',()=>{
   const focusedSort = document.activeElement.matches('[data-sort]') ? document.activeElement : null;
