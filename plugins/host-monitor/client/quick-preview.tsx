@@ -16,18 +16,18 @@ export function HostQuickPreview({ theme, host, openScreen }: PluginPopoverProps
   const muted = theme.colors.foregroundMuted;
   const current = stats.data;
   const pct = (value: number | null) => value === null ? "--" : `${value.toFixed(1)}%`;
-  return <View style={{ width: "100%", minWidth: 0, gap: 4 }}>
+  return <View style={{ width: 396, maxWidth: "100%", minWidth: 0, gap: 4 }}>
     <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
       <Text numberOfLines={1} style={{ flex: 1, color: fg, fontWeight: "600", fontSize: 14 }}>{current?.hostname ?? host.label}</Text>
       <Text style={{ color: muted, fontSize: 11 }}>{stats.isError ? "主机采样失败" : current ? "每 2 秒更新" : "正在采样"}</Text>
     </View>
-    <View style={{ flexDirection: "row", flexWrap: "wrap", columnGap: 12, rowGap: 2, paddingVertical: 4 }}>
+    <View style={{ flexDirection: "row", flexWrap: "wrap", height: 40, paddingVertical: 4 }}>
       {current ? [
         `CPU ${formatPercent(current.current.cpuPercent)}`,
         `内存 ${formatPercent(memoryPercent(current.memory))}`,
         `磁盘 ${current.disks.length ? formatPercent(sumDisks(current.disks).percent) : "--"}`,
         `网络 ${current.network ? `↓${formatCompactRate(current.current.rxBytesPerSec)} ↑${formatCompactRate(current.current.txBytesPerSec)}/s` : "--"}`,
-      ].map((text) => <Text key={text} style={{ color: muted, fontSize: 11 }}>{text}</Text>) : <Text style={{ color: muted, fontSize: 11 }}>主机数据暂不可用</Text>}
+      ].map((text, index) => <Text key={index} numberOfLines={1} style={{ width: "50%", height: 16, color: muted, fontSize: 11 }}>{text}</Text>) : <Text style={{ color: muted, fontSize: 11 }}>主机数据暂不可用</Text>}
     </View>
     <View style={{ flexDirection: "row", alignItems: "center", borderBottomWidth: 1, borderColor: theme.colors.border }}>
       <Text style={{ flex: 1, minWidth: 0, color: muted, fontSize: 11 }}>进程</Text>
@@ -52,7 +52,7 @@ export function HostQuickPreview({ theme, host, openScreen }: PluginPopoverProps
       const cells = (usage: ProcessResources, partial?: ProcessGroup["partial"]) => values(usage, partial).map((value, i) => <Text key={previewKeys[i]} style={{ width: i >= 2 ? 54 : 48, textAlign: "right", color: fg, fontSize: 10, fontVariant: ["tabular-nums"] }}>{value}</Text>);
       const toggle = () => setExpanded((previous) => { const next = new Set(previous); if (next.has(group.name)) next.delete(group.name); else next.add(group.name); return next; });
       return <View key={group.name}>
-        <View style={{ flexDirection: "row", alignItems: "center", minHeight: multi ? 44 : 35, borderBottomWidth: 1, borderColor: theme.colors.border }}>
+        <View style={{ flexDirection: "row", alignItems: "center", minHeight: 45, borderBottomWidth: 1, borderColor: theme.colors.border }}>
           {multi ? <Pressable accessibilityRole="button" accessibilityLabel={`${group.name}，${group.members.length}个进程`} accessibilityState={{ expanded: opened }} aria-expanded={opened} onPress={toggle} style={{ flex: 1, minWidth: 0, minHeight: 44, justifyContent: "center" }}><Text numberOfLines={1} style={{ color: fg, fontSize: 12 }}>{opened ? "▾" : "▸"} {group.name}</Text><Text style={{ color: muted, fontSize: 10 }}>{group.members.length}个进程</Text></Pressable> : <View style={{ flex: 1, minWidth: 0 }}><Text numberOfLines={1} style={{ color: fg, fontSize: 12 }}>{group.name}</Text><Text style={{ color: muted, fontSize: 10 }}>PID {group.members[0].pid}</Text></View>}
           {cells(group.usage, group.partial)}
         </View>
