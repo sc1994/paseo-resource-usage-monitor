@@ -1,6 +1,6 @@
 import type { PluginTheme, RpcOutput } from "@getpaseo/plugin";
-import type { PluginPopoverProps, PluginSidebarItemProps } from "@getpaseo/plugin/client";
-import { Icon } from "@getpaseo/plugin/client/react-native";
+import type { PluginScreenProps, PluginSidebarItemProps } from "@getpaseo/plugin/client";
+import { Icon, ScrollView } from "@getpaseo/plugin/client/ui";
 import { useCallback, useState } from "react";
 import {
   Pressable,
@@ -10,6 +10,7 @@ import {
   type PressableStateCallbackType,
 } from "react-native";
 import type { hostStatsRpc } from "../shared/stats";
+import { ProcessPanel } from "./processes";
 import { formatBytes, formatCompactRate, formatPercent, formatRate, formatUptime } from "./format";
 import {
   Meter,
@@ -218,24 +219,24 @@ function describe(stats: HostStats): string {
   const { current, memory, network, disks } = stats;
   const parts = [
     `CPU ${formatPercent(current.cpuPercent)}`,
-    `memory ${formatPercent(memoryPercent(memory))}`,
+    `内存 ${formatPercent(memoryPercent(memory))}`,
   ];
-  if (memory.pressure) parts.push(`memory pressure ${memory.pressure}`);
-  if (disks.length > 0) parts.push(`disk ${formatPercent(sumDisks(disks).percent)}`);
+  if (memory.pressure) parts.push(`内存压力 ${memory.pressure}`);
+  if (disks.length > 0) parts.push(`磁盘 ${formatPercent(sumDisks(disks).percent)}`);
   if (network) {
     parts.push(
-      `download ${formatRate(current.rxBytesPerSec)}`,
-      `upload ${formatRate(current.txBytesPerSec)}`,
+      `下载 ${formatRate(current.rxBytesPerSec)}`,
+      `上传 ${formatRate(current.txBytesPerSec)}`,
     );
   }
-  return `Host status: ${parts.join(", ")}`;
+  return `主机状态：${parts.join("，")}`;
 }
 
 function layoutWidth(event: LayoutChangeEvent): number {
   return event.nativeEvent.layout.width;
 }
 
-export function HostStatusItem({ theme, openPopover }: PluginSidebarItemProps) {
+export function HostStatusItem({ theme, openScreen }: PluginSidebarItemProps) {
   const { data } = useHostStats();
   const [available, setAvailable] = useState<number | null>(null);
   const [measuredSlot, setMeasuredSlot] = useState<number | null>(null);
@@ -255,7 +256,7 @@ export function HostStatusItem({ theme, openPopover }: PluginSidebarItemProps) {
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={describe(data)}
-      onPress={() => openPopover(HostPopover)}
+      onPress={() => openScreen({ screenId: "resources" })}
       style={triggerStyle(theme)}
     >
       <View
@@ -329,8 +330,8 @@ function Caption({ theme, text }: { theme: PluginTheme; text: string }) {
 /** macOS: what the RAM figure leaves out, and the pressure that colors it. */
 function memoryDetail(memory: HostStats["memory"]): string | undefined {
   const parts: string[] = [];
-  if (memory.cachedBytes !== null) parts.push(`Cached files ${formatBytes(memory.cachedBytes)}`);
-  if (memory.pressure !== null) parts.push(`pressure ${memory.pressure}`);
+  if (memory.cachedBytes !== null) parts.push(`缓存文件 ${formatBytes(memory.cachedBytes)}`);
+  if (memory.pressure !== null) parts.push(`压力 ${memory.pressure}`);
   return parts.length > 0 ? parts.join(" · ") : undefined;
 }
 
@@ -341,7 +342,7 @@ function DiskSection({ theme, disks }: { theme: PluginTheme; disks: HostStats["d
       <View style={{ flexDirection: "row", alignItems: "center", gap: ICON_GAP }}>
         <Icon name="HardDrive" size={ICON_SIZE} color={theme.colors.foregroundMuted} />
         <Text style={{ flex: 1, color: theme.colors.foregroundMuted, fontSize: FONT_SIZE }}>
-          Disk · {formatBytes(total.usedBytes)} / {formatBytes(total.totalBytes)}
+          磁盘 · {formatBytes(total.usedBytes)} / {formatBytes(total.totalBytes)}
         </Text>
         <Text
           style={{ color: theme.colors.foreground, fontSize: FONT_SIZE, fontVariant: ["tabular-nums"] }}
@@ -352,7 +353,7 @@ function DiskSection({ theme, disks }: { theme: PluginTheme; disks: HostStats["d
       {/* statfs on an APFS volume counts every volume sharing its container, so say so: Finder and
           other tools often show the data volume alone. */}
       {disks.some((disk) => disk.fsType === "apfs") ? (
-        <Caption theme={theme} text="APFS container: all volumes sharing it" />
+        <Caption theme={theme} text="APFS 容器：包含共享容器的所有卷" />
       ) : null}
       {/* A single disk is the total itself: its meter, not a repeat of the same numbers. */}
       {disks.length === 1 ? <Meter theme={theme} percent={total.percent} height={METER_HEIGHT - 2} /> : null}
@@ -389,18 +390,13 @@ function DiskSection({ theme, disks }: { theme: PluginTheme; disks: HostStats["d
   );
 }
 
-function HostPopover({ theme, layout }: PluginPopoverProps) {
+function HostOverview({ theme }: { theme: PluginTheme }) {
   const { data } = useHostStats();
-  const rootStyle = {
-    gap: 10,
-    padding: layout.compact ? 16 : 12,
-    minWidth: 240,
-    backgroundColor: theme.colors.surface1,
-  };
+  const rootStyle = { gap: 14, minWidth: 0 };
   if (!data) {
     return (
       <View style={rootStyle}>
-        <Text style={{ color: theme.colors.foregroundMuted, fontSize: FONT_SIZE }}>Loading...</Text>
+        <Text style={{ color: theme.colors.foregroundMuted, fontSize: FONT_SIZE }}>正在加载主机数据...</Text>
       </View>
     );
   }
@@ -410,16 +406,18 @@ function HostPopover({ theme, layout }: PluginPopoverProps) {
   return (
     <View style={rootStyle}>
       <View style={{ gap: 2 }}>
+        <Text style={{ color: theme.colors.foreground, fontSize: 14, fontWeight: "600" }}>主机概览</Text>
+        <Text style={{ color: theme.colors.foregroundMuted, fontSize: FONT_SIZE - 1 }}>最近 3 分钟</Text>
         <Text style={{ color: theme.colors.foreground, fontSize: FONT_SIZE + 1 }}>{data.hostname}</Text>
         <Text style={{ color: theme.colors.foregroundMuted, fontSize: FONT_SIZE - 1 }}>
-          up {formatUptime(data.uptimeSeconds)} · load{" "}
+          运行 {formatUptime(data.uptimeSeconds)} · 负载{" "}
           {data.loadAverage.map((n) => n.toFixed(2)).join(" ")}
         </Text>
       </View>
       <PreviewRow
         theme={theme}
         icon="Cpu"
-        label={`CPU · ${data.cpuCount} cores`}
+        label={`CPU · ${data.cpuCount} 核`}
         value={formatPercent(current.cpuPercent)}
         color={loadColor(theme, current.cpuPercent)}
         values={history.map((s) => s.cpuPercent)}
@@ -438,7 +436,7 @@ function HostPopover({ theme, layout }: PluginPopoverProps) {
           <PreviewRow
             theme={theme}
             icon="ArrowDown"
-            label="Download"
+            label="下载"
             value={formatRate(current.rxBytesPerSec)}
             color={theme.colors.accent}
             values={scaleToPeak(history, (s) => s.rxBytesPerSec)}
@@ -446,7 +444,7 @@ function HostPopover({ theme, layout }: PluginPopoverProps) {
           <PreviewRow
             theme={theme}
             icon="ArrowUp"
-            label="Upload"
+            label="上传"
             value={formatRate(current.txBytesPerSec)}
             color={theme.colors.accent}
             values={scaleToPeak(history, (s) => s.txBytesPerSec)}
@@ -454,6 +452,27 @@ function HostPopover({ theme, layout }: PluginPopoverProps) {
         </>
       ) : null}
       {disks.length > 0 ? <DiskSection theme={theme} disks={disks} /> : null}
+    </View>
+  );
+}
+
+export function HostMonitorScreen({ theme }: PluginScreenProps) {
+  const [width, setWidth] = useState<number | null>(null);
+  const compact = width === null || width < 1000;
+  const [tab, setTab] = useState<"overview" | "process">("overview");
+  return (
+    <View onLayout={(event) => setWidth(event.nativeEvent.layout.width)} style={{ flex: 1, minWidth: 0, minHeight: 0, alignSelf: "stretch", backgroundColor: theme.colors.surface1 }}>
+    <ScrollView style={{ flex: 1, minHeight: 0, width: "100%" }}>
+      {compact ? <View style={{ flexDirection: "row", borderBottomWidth: 1, borderColor: theme.colors.border, paddingHorizontal: 16, gap: 20 }}>
+        {(["overview", "process"] as const).map((item) => <Pressable key={item} accessibilityRole="tab" accessibilityState={{ selected: tab === item }} aria-selected={tab === item} onPress={() => setTab(item)} style={{ minHeight: 44, justifyContent: "center", borderBottomWidth: 2, borderColor: tab === item ? theme.colors.accent : theme.colors.surface1 }}>
+          <Text style={{ color: tab === item ? theme.colors.accent : theme.colors.foregroundMuted }}>{item === "overview" ? "主机概览" : "进程"}</Text>
+        </Pressable>)}
+      </View> : null}
+      <View style={{ flexDirection: compact ? "column" : "row", minWidth: 0 }}>
+        {!compact || tab === "overview" ? <View style={{ width: compact ? "100%" : 300, padding: 20, borderRightWidth: compact ? 0 : 1, borderColor: theme.colors.border }}><HostOverview theme={theme} /></View> : null}
+        {!compact || tab === "process" ? <View style={{ flex: 1, minWidth: 0, padding: 20 }}><ProcessPanel theme={theme} compact={compact} /></View> : null}
+      </View>
+    </ScrollView>
     </View>
   );
 }

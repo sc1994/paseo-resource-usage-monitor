@@ -1,11 +1,14 @@
 {
-  "id": "host-monitor",
-  "name": "Host monitor",
-  "description": "CPU, memory, disk and network usage of the daemon host in the sidebar footer",
+  "id": "paseo-resource-usage-monitor",
+  "name": "主机资源监控",
+  "description": "从侧栏打开宿主机资源与高占用进程页面",
   "media": [
-    "assets/screenshot.png"
+    "assets/processes-desktop.png",
+    "assets/processes-gpu.png",
+    "assets/processes-confirm.png",
+    "assets/processes-mobile.png"
   ],
   "requirements": {
-    "paseo": ">=0.11.1"
+    "paseo": ">=0.13.2"
   }
 }

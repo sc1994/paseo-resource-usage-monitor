@@ -2,11 +2,11 @@
   "name": "host-monitor",
   "private": true,
   "version": "0.0.0",
-  "description": "CPU, memory, disk and network usage of the daemon host in the sidebar footer",
+  "description": "在侧栏查看宿主机资源和高占用进程",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/a31521424/paseo-kit.git",
+    "url": "git+https://github.com/sc1994/paseo-resource-usage-monitor.git",
     "directory": "plugins/host-monitor"
   },
   "files": [
@@ -22,10 +22,11 @@
     "assets/"
   ],
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-strip-types --test server/*.test.mjs client/*.test.mjs"
   },
   "devDependencies": {
-    "@getpaseo/plugin": "0.11.1",
+    "@getpaseo/plugin": "0.13.2",
     "@tanstack/react-query": "^5.90.11",
     "@types/node": "^22.0.0",
     "@types/react": "~19.2.0",

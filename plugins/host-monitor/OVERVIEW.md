@@ -1,9 +1,17 @@
-Shows the CPU, memory, disk and network usage of the machine the Paseo daemon runs on, as one line in the sidebar footer.
+# 功能与限制
 
-The line reads like the built-in usage summary: an icon and percentage for CPU, RAM and disk, with a small meter when the sidebar is wide enough, followed by download and upload speed side by side under one icon. The disk figure adds all local disks together. Meters and numbers turn yellow above 70 percent and red above 90 percent; on macOS the RAM color follows the system's memory pressure instead (see below). On a narrow sidebar the network speeds are dropped first, then disk. Press the line for a popover with about three minutes of history for each metric, the usage of each local disk, plus uptime and load average.
+侧栏显示 Paseo daemon 所在主机的 CPU、内存、磁盘和网络速率。点击状态条打开完整资源页，可查看约三分钟的历史、各本地磁盘、运行时间和负载，以及按 CPU、GPU 或网络排序的前 12 个进程。宽容器左右排列主机概览和进程，窄容器以页签切换。CPU 的 100% 表示占满一个核心，多核心进程可以超过 100%。
 
-The daemon samples the host every two seconds, disks every thirty, and keeps the history in memory. History resets when the plugin reloads or the daemon restarts. Each connected host reports its own numbers.
+主机指标每两秒采样一次，磁盘每三十秒采样一次；历史保存在内存中，插件重载或 daemon 重启后清空。Linux 主机 CPU 来自 `/proc/stat`，内存使用 `MemAvailable`；macOS 内存参考 `vm_stat` 和系统内存压力。主机网络总量排除回环及常见虚拟接口，本地磁盘按设备去重，不包含网络挂载和只读镜像。
 
-Percentages below 10 show one decimal, so a nearly idle host reads 0.4% rather than 0%. On Linux, CPU usage comes from `/proc/stat`; I/O wait counts as idle and steal time, which a VPS loses to its hypervisor, counts as busy. Memory uses the available-memory figure from `/proc/meminfo` on Linux, so the page cache is not counted as used. On macOS, RAM follows Activity Monitor's Memory Used: app memory, wired memory and the compressor, read from `vm_stat`. Cached files are left out because macOS frees them as soon as an app needs the room; the popover shows them on a separate line. A Mac often runs at high usage with no shortage, so there the RAM color follows the kernel's memory pressure level (`kern.memorystatus_vm_pressure_level`): yellow at warning, red at critical, never because of the percentage alone. Sizes use binary units (KiB, MiB, GiB), so a 994.6 GB disk reads 926.3 GiB. Network speed sums all interfaces except loopback and common virtual ones (veth, docker, bridge). Disks are the filesystems in `/proc/mounts` backed by a block device (plus ZFS), each device counted once; network mounts, memory-backed filesystems and read-only images such as snap packages are left out. Disk percentages follow `df`: space reserved for root counts as neither used nor free. On macOS the disk is the APFS container of the root volume, so its usage covers every volume in the container (system, data, VM and others), and the popover labels it that way; apps that show the data volume alone report a little less. Network speed and the disk list need Linux; on other systems only CPU, RAM and the root disk are shown.
+## 进程采样
 
-The plugin only reads local system counters. On macOS it runs `/usr/bin/vm_stat` and `/usr/sbin/sysctl -n kern.memorystatus_vm_pressure_level` every two seconds for the memory figures; it runs nothing else. The host name and these statistics are shown to every Paseo client connected to the daemon, including remote ones; the plugin contacts no other service.
+进程 CPU 采样依赖 Linux `/proc`，按进程 PID 和启动时间比较两次计数；首帧和新进程没有基线时显示不可用。需要 `nvidia-smi` 才能采样 NVIDIA 进程数据：优先显示 SM 利用率；无法取得数字时按显存排序并明确显示显存，多个设备的同一进程数值相加。没有 NVIDIA 工具或驱动不可用时显示不可用，不将显存冒充 GPU 利用率。
+
+进程网络需要 `ss`。它只统计可唯一归属的可见 TCP 持续连接，包含回环连接；发送量使用 `bytes_sent`。UDP、无法归属的连接以及两次采样之间结束的短连接不在统计范围内，因此不能与排除回环的主机网络总量直接比较。连接和进程首次出现时没有速率基线。
+
+## 结束与隐私
+
+仅允许请求结束当前用户的进程，PID 1、插件进程及其祖先进程受到保护。确认后仅发送 `SIGTERM`；不会自动发送 `SIGKILL`。结束功能需要 Python 3 的 `os.pidfd_open`、`signal.pidfd_send_signal` 及系统 pidfd 支持，并在打开 pidfd 后重新核对进程启动身份和 UID，避免 PID 复用造成误杀。进程没有及时退出时会报告仍在运行。
+
+进程命令会隐藏常见 password、token、api-key、secret 等参数值及 URL 凭据，但不能保证识别所有自定义敏感参数；插件不读取进程环境变量或凭据文件。主机与进程信息均展示给已连接 daemon 的客户端，包括远程客户端，请按此控制连接权限。插件不连接外部服务。

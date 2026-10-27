@@ -1,6 +1,8 @@
 import v8 from "node:v8";
 import type { PluginServerContext } from "@getpaseo/plugin/server";
 import { startSampler } from "./server/sampler";
+import { startProcessSampler } from "./server/processes";
+import { processStatsRpc, terminateProcessRpc } from "./shared/processes";
 import { hostStatsRpc } from "./shared/stats";
 
 // The plugin process validates every daemon message with one generated function of about 11 MB
@@ -13,6 +15,12 @@ v8.setFlagsFromString("--no-maglev");
 
 export default function contribute(server: PluginServerContext) {
   const sampler = startSampler();
+  const processes = startProcessSampler();
   server.handle(hostStatsRpc, () => sampler.read());
-  return () => sampler.stop();
+  server.handle(processStatsRpc, () => processes.read());
+  server.handle(terminateProcessRpc, ({ pid, startTime }) => processes.terminate(pid, startTime));
+  return () => {
+    sampler.stop();
+    processes.stop();
+  };
 }
