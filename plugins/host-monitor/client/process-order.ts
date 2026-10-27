@@ -1,6 +1,6 @@
 import type { GpuMode, ProcessUsage } from "../shared/processes";
 
-export type SortKey = "cpu" | "gpu" | "network";
+export type SortKey = "cpu" | "memory" | "gpu" | "network";
 export type SortDirection = "asc" | "desc";
 
 export function networkTotal(process: ProcessUsage): number | null {
@@ -11,6 +11,7 @@ export function networkTotal(process: ProcessUsage): number | null {
 
 function value(process: ProcessUsage, key: SortKey, gpuMode: GpuMode): number | null {
   if (key === "cpu") return process.cpuPercent;
+  if (key === "memory") return process.memoryBytes;
   if (key === "network") return networkTotal(process);
   if (gpuMode === "memory") return process.gpuMemoryBytes;
   return gpuMode === "utilization" ? process.gpuPercent : null;

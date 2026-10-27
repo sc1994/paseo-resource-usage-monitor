@@ -7,7 +7,7 @@ const INTERVAL = 2000;
 const TIMEOUT = 1500;
 const NETWORK_REASON = "仅统计可唯一归属的可见 TCP 持续连接（含回环），发送量使用 bytes_sent；不含 UDP 和短连接。";
 
-type Proc = { pid: number; ppid: number; startTime: string; ticks: number; uid: number; name: string; command: string };
+type Proc = { pid: number; ppid: number; startTime: string; ticks: number; uid: number; name: string; command: string; memoryBytes: number | null };
 type Socket = { pid: number; rx: number; tx: number };
 type Gpu = { memory: Map<number, number>; utilization: Map<number, number>; mode: ProcessStats["capabilities"]["gpu"]["mode"]; reason: string | null };
 
@@ -20,6 +20,13 @@ export function parseProcStat(text: string): { pid: number; ppid: number; name: 
   const startTime = fields[18];
   if (!Number.isSafeInteger(ppid) || !Number.isFinite(ticks) || !startTime || !/^\d+$/.test(startTime)) return null;
   return { pid: Number(match[1]), name: match[2]!, ppid, ticks, startTime };
+}
+
+export function parseRssBytes(status: string): number | null {
+  const match = /^VmRSS:[ \t]+(\d+)[ \t]+kB[ \t]*$/m.exec(status);
+  if (!match) return null;
+  const bytes = Number(match[1]) * 1024;
+  return Number.isSafeInteger(bytes) ? bytes : null;
 }
 
 export function cpuPercent(previous: { ticks: number; startTime: string } | undefined, current: { ticks: number; startTime: string }, totalDelta: number, cores: number): number | null {
@@ -43,7 +50,8 @@ export function redactCommand(args: string[]): string {
 function readProc(pid: number): Proc | null {
   try {
     const stat = parseProcStat(readFileSync(`/proc/${pid}/stat`, "utf8"));
-    const uid = /^Uid:\s+(\d+)/m.exec(readFileSync(`/proc/${pid}/status`, "utf8"));
+    const status = readFileSync(`/proc/${pid}/status`, "utf8");
+    const uid = /^Uid:\s+(\d+)/m.exec(status);
     if (!stat || !uid) return null;
     let args: string[] = [];
     try {
@@ -53,7 +61,7 @@ function readProc(pid: number): Proc | null {
         args = buffer.subarray(0, readSync(fd, buffer, 0, buffer.length, null)).toString().split("\0").filter(Boolean);
       } finally { closeSync(fd); }
     } catch { /* Process can exit during sampling. */ }
-    return { ...stat, uid: Number(uid[1]), command: args.length ? redactCommand(args) : stat.name };
+    return { ...stat, uid: Number(uid[1]), command: args.length ? redactCommand(args) : stat.name, memoryBytes: parseRssBytes(status) };
   } catch { return null; }
 }
 
@@ -230,7 +238,7 @@ export function startProcessSampler(): { read(): Promise<ProcessStats>; terminat
       const rate = previous?.startTime === proc.startTime ? rates.get(proc.pid) : undefined;
       const reason = !protectedSet ? "无法确认保护链" : protectedSet.has(proc.pid) ? "受保护的系统或服务进程" : currentUid === undefined || proc.uid !== currentUid ? "非当前用户进程" : !releaseAvailable ? releaseReason : null;
       return { pid: proc.pid, startTime: proc.startTime, name: proc.name, user: proc.uid === user.uid ? user.username : String(proc.uid), command: proc.command,
-        cpuPercent: cpuPercent(previous, proc, previousTotal === null ? 0 : total - previousTotal, cores),
+        cpuPercent: cpuPercent(previous, proc, previousTotal === null ? 0 : total - previousTotal, cores), memoryBytes: proc.memoryBytes,
         gpuPercent: gpu.utilization.get(proc.pid) ?? null, gpuMemoryBytes: gpu.memory.get(proc.pid) ?? null,
         rxBytesPerSec: rate?.rx ?? null, txBytesPerSec: rate?.tx ?? null, canTerminate: reason === null, protectionReason: reason };
     });

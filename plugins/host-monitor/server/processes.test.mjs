@@ -2,12 +2,20 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { readFileSync } from "node:fs";
-import { cpuPercent, parseGpu, parseProcStat, parseSockets, redactCommand, socketRates, startProcessSampler } from "./processes.ts";
+import { cpuPercent, parseGpu, parseProcStat, parseRssBytes, parseSockets, redactCommand, socketRates, startProcessSampler } from "./processes.ts";
 
 test("proc stat 正确解析带空格和右括号的名称及身份", () => {
   const fields = ["5", ...Array(9).fill("0"), "12", "3", ...Array(6).fill("0"), "12345"];
   assert.deepEqual(parseProcStat(`42 (foo ) bar) S ${fields.join(" ")}`), { pid: 42, name: "foo ) bar", ppid: 5, ticks: 15, startTime: "12345" });
   assert.equal(parseProcStat("invalid"), null);
+});
+
+test("status RSS 以 KiB 转换为字节，缺失或无效时为空", () => {
+  assert.equal(parseRssBytes("Uid:\t1000\nVmRSS:\t123 kB\n"), 123 * 1024);
+  assert.equal(parseRssBytes("VmRSS:\t0 kB\n"), 0);
+  for (const status of ["Uid:\t1000\n", "VmRSS: -1 kB\n", "VmRSS: 1.5 kB\n", "VmRSS: 1 MB\n", "VmRSS: 8796093022208 kB\n"]) {
+    assert.equal(parseRssBytes(status), null);
+  }
 });
 
 test("CPU 差值需要同一身份和有效基线", () => {

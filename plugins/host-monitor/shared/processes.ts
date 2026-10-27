@@ -8,6 +8,7 @@ const processUsageSchema = z.object({
   user: z.string(),
   command: z.string(),
   cpuPercent: z.number().nullable(),
+  memoryBytes: z.number().int().nonnegative().nullable(),
   gpuPercent: z.number().nullable(),
   gpuMemoryBytes: z.number().nullable(),
   rxBytesPerSec: z.number().nullable(),
