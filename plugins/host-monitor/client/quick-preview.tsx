@@ -21,13 +21,13 @@ export function HostQuickPreview({ theme, host, openScreen }: PluginPopoverProps
       <Text numberOfLines={1} style={{ flex: 1, color: fg, fontWeight: "600", fontSize: 14 }}>{current?.hostname ?? host.label}</Text>
       <Text style={{ color: muted, fontSize: 11 }}>{stats.isError ? "主机采样失败" : current ? "每 2 秒更新" : "正在采样"}</Text>
     </View>
-    <View style={{ flexDirection: "row", flexWrap: "wrap", height: 40, paddingVertical: 4 }}>
+    <View style={{ flexDirection: "row", flexWrap: "wrap", minHeight: 40, paddingVertical: 4 }}>
       {current ? [
         `CPU ${formatPercent(current.current.cpuPercent)}`,
         `内存 ${formatPercent(memoryPercent(current.memory))}`,
         `磁盘 ${current.disks.length ? formatPercent(sumDisks(current.disks).percent) : "--"}`,
         `网络 ${current.network ? `↓${formatCompactRate(current.current.rxBytesPerSec)} ↑${formatCompactRate(current.current.txBytesPerSec)}/s` : "--"}`,
-      ].map((text, index) => <Text key={index} numberOfLines={1} style={{ width: "50%", height: 16, color: muted, fontSize: 11 }}>{text}</Text>) : <Text style={{ color: muted, fontSize: 11 }}>主机数据暂不可用</Text>}
+      ].map((text, index) => <Text key={index} numberOfLines={1} style={{ width: "50%", minHeight: 16, color: muted, fontSize: 11 }}>{text}</Text>) : <Text style={{ color: muted, fontSize: 11 }}>主机数据暂不可用</Text>}
     </View>
     <View style={{ flexDirection: "row", alignItems: "center", borderBottomWidth: 1, borderColor: theme.colors.border }}>
       <Text style={{ flex: 1, minWidth: 0, color: muted, fontSize: 11 }}>进程</Text>
