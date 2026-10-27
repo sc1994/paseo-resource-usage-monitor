@@ -7,9 +7,9 @@ const INTERVAL = 2000;
 const TIMEOUT = 1500;
 const NETWORK_REASON = "仅统计可唯一归属的可见 TCP 持续连接（含回环），发送量使用 bytes_sent；不含 UDP 和短连接。";
 
-type Proc = { pid: number; ppid: number; startTime: string; ticks: number; uid: number; name: string; command: string };
+type Proc = { pid: number; ppid: number; startTime: string; ticks: number; uid: number; name: string; command: string; memoryBytes: number | null };
 type Socket = { pid: number; rx: number; tx: number };
-type Gpu = { memory: Map<number, number>; utilization: Map<number, number>; mode: ProcessStats["capabilities"]["gpu"]["mode"]; reason: string | null };
+type Gpu = { memory: Map<number, number>; utilization: Map<number, number>; capabilities: ProcessStats["capabilities"]["gpu"] };
 
 export function parseProcStat(text: string): { pid: number; ppid: number; name: string; ticks: number; startTime: string } | null {
   const match = /^(\d+) \(([\s\S]*)\) ([A-Za-z]) (.*)$/.exec(text.trim());
@@ -20,6 +20,13 @@ export function parseProcStat(text: string): { pid: number; ppid: number; name: 
   const startTime = fields[18];
   if (!Number.isSafeInteger(ppid) || !Number.isFinite(ticks) || !startTime || !/^\d+$/.test(startTime)) return null;
   return { pid: Number(match[1]), name: match[2]!, ppid, ticks, startTime };
+}
+
+export function parseRssBytes(status: string): number | null {
+  const match = /^VmRSS:[ \t]+(\d+)[ \t]+kB[ \t]*$/m.exec(status);
+  if (!match) return null;
+  const bytes = Number(match[1]) * 1024;
+  return Number.isSafeInteger(bytes) ? bytes : null;
 }
 
 export function cpuPercent(previous: { ticks: number; startTime: string } | undefined, current: { ticks: number; startTime: string }, totalDelta: number, cores: number): number | null {
@@ -43,7 +50,8 @@ export function redactCommand(args: string[]): string {
 function readProc(pid: number): Proc | null {
   try {
     const stat = parseProcStat(readFileSync(`/proc/${pid}/stat`, "utf8"));
-    const uid = /^Uid:\s+(\d+)/m.exec(readFileSync(`/proc/${pid}/status`, "utf8"));
+    const status = readFileSync(`/proc/${pid}/status`, "utf8");
+    const uid = /^Uid:\s+(\d+)/m.exec(status);
     if (!stat || !uid) return null;
     let args: string[] = [];
     try {
@@ -53,7 +61,7 @@ function readProc(pid: number): Proc | null {
         args = buffer.subarray(0, readSync(fd, buffer, 0, buffer.length, null)).toString().split("\0").filter(Boolean);
       } finally { closeSync(fd); }
     } catch { /* Process can exit during sampling. */ }
-    return { ...stat, uid: Number(uid[1]), command: args.length ? redactCommand(args) : stat.name };
+    return { ...stat, uid: Number(uid[1]), command: args.length ? redactCommand(args) : stat.name, memoryBytes: parseRssBytes(status) };
   } catch { return null; }
 }
 
@@ -77,9 +85,9 @@ function protectedPids(): Set<number> | null {
   return protectedSet;
 }
 
-export function parseGpu(memoryOutput: string, pmonOutput: string | null): Gpu {
+export function parseGpu(memoryOutput: string | null, pmonOutput: string | null): Gpu {
   const memory = new Map<number, number>();
-  for (const line of memoryOutput.split("\n")) {
+  for (const line of (memoryOutput ?? "").split("\n")) {
     if (!line.trim()) continue;
     const fields = line.split(",").map((field) => field.trim());
     const pid = Number(fields[0]);
@@ -92,9 +100,16 @@ export function parseGpu(memoryOutput: string, pmonOutput: string | null): Gpu {
     const fields = line.trim().split(/\s+/);
     const pid = Number(fields[1]);
     const sm = fields[3];
-    if (Number.isSafeInteger(pid) && pid > 0 && sm && /^\d+(?:\.\d+)?$/.test(sm)) utilization.set(pid, (utilization.get(pid) ?? 0) + Number(sm));
+    if (Number.isSafeInteger(pid) && pid > 0 && sm && /^\d+(?:\.\d+)?$/.test(sm) && Number(sm) <= 100) utilization.set(pid, (utilization.get(pid) ?? 0) + Number(sm));
   }
-  return { memory, utilization, mode: utilization.size ? "utilization" : "memory", reason: utilization.size ? "多设备的进程 SM 利用率相加。" : "SM 利用率不可用，显示多设备显存之和。" };
+  return {
+    memory,
+    utilization,
+    capabilities: {
+      utilization: { available: utilization.size > 0, reason: utilization.size ? "多设备的进程 SM 利用率相加。" : "无法读取进程 SM 利用率" },
+      memory: { available: memoryOutput !== null, reason: memoryOutput === null ? "无法读取 NVIDIA 进程显存" : "多设备的进程显存相加。" },
+    },
+  };
 }
 
 export function parseSockets(output: string): Map<string, Socket> {
@@ -182,7 +197,7 @@ export function startProcessSampler(): { read(): Promise<ProcessStats>; terminat
     });
     children.add(child);
   });
-  const unavailable = (reason: string): ProcessStats => ({ sampledAt: Date.now(), intervalMs: INTERVAL, processes: [], capabilities: { cpu: { available: false, reason }, gpu: { mode: "unavailable", reason }, network: { available: false, reason }, release: { available: false, reason } } });
+  const unavailable = (reason: string): ProcessStats => ({ sampledAt: Date.now(), intervalMs: INTERVAL, processes: [], capabilities: { cpu: { available: false, reason }, gpu: { utilization: { available: false, reason }, memory: { available: false, reason } }, network: { available: false, reason }, release: { available: false, reason } } });
   let cache = unavailable("正在初始化进程采样");
   let previousProcs = new Map<number, Proc>();
   const exited = new Set<string>();
@@ -217,7 +232,7 @@ export function startProcessSampler(): { read(): Promise<ProcessStats>; terminat
     const observed = new Set(processes.map((proc) => `${proc.pid}:${proc.startTime}`));
     for (const key of exited) if (!observed.has(key)) exited.delete(key);
     processes = processes.filter((proc) => !exited.has(`${proc.pid}:${proc.startTime}`));
-    const gpu: Gpu = memoryOutput === null ? { memory: new Map(), utilization: new Map(), mode: "unavailable", reason: "无法读取 NVIDIA 进程数据" } : parseGpu(memoryOutput, pmonOutput);
+    const gpu = parseGpu(memoryOutput, pmonOutput);
     const netAt = networkOutput?.at ?? null;
     const sockets = networkOutput === null ? new Map<string, Socket>() : parseSockets(networkOutput.output);
     const rates = netAt !== null && previousNetAt !== null ? socketRates(previousSockets, sockets, (netAt - previousNetAt) / 1000) : new Map<number, { rx: number; tx: number }>();
@@ -230,7 +245,7 @@ export function startProcessSampler(): { read(): Promise<ProcessStats>; terminat
       const rate = previous?.startTime === proc.startTime ? rates.get(proc.pid) : undefined;
       const reason = !protectedSet ? "无法确认保护链" : protectedSet.has(proc.pid) ? "受保护的系统或服务进程" : currentUid === undefined || proc.uid !== currentUid ? "非当前用户进程" : !releaseAvailable ? releaseReason : null;
       return { pid: proc.pid, startTime: proc.startTime, name: proc.name, user: proc.uid === user.uid ? user.username : String(proc.uid), command: proc.command,
-        cpuPercent: cpuPercent(previous, proc, previousTotal === null ? 0 : total - previousTotal, cores),
+        cpuPercent: cpuPercent(previous, proc, previousTotal === null ? 0 : total - previousTotal, cores), memoryBytes: proc.memoryBytes,
         gpuPercent: gpu.utilization.get(proc.pid) ?? null, gpuMemoryBytes: gpu.memory.get(proc.pid) ?? null,
         rxBytesPerSec: rate?.rx ?? null, txBytesPerSec: rate?.tx ?? null, canTerminate: reason === null, protectionReason: reason };
     });
@@ -238,7 +253,7 @@ export function startProcessSampler(): { read(): Promise<ProcessStats>; terminat
     previousTotal = total;
     previousSockets = sockets;
     previousNetAt = networkOutput === null ? null : netAt;
-    cache = { sampledAt: Date.now(), intervalMs: INTERVAL, processes: result, capabilities: { cpu: { available: true, reason: null }, gpu: { mode: gpu.mode, reason: gpu.reason }, network: { available: networkOutput !== null, reason: networkOutput === null ? "无法读取 TCP 连接数据" : NETWORK_REASON }, release: { available: releaseAvailable && protectedSet !== null, reason: protectedSet === null ? "无法确认保护链" : releaseReason } } };
+    cache = { sampledAt: Date.now(), intervalMs: INTERVAL, processes: result, capabilities: { cpu: { available: true, reason: null }, gpu: gpu.capabilities, network: { available: networkOutput !== null, reason: networkOutput === null ? "无法读取 TCP 连接数据" : NETWORK_REASON }, release: { available: releaseAvailable && protectedSet !== null, reason: protectedSet === null ? "无法确认保护链" : releaseReason } } };
   };
   const tick = () => {
     if (!inFlight && !stopped) inFlight = sample().catch((error: unknown) => { cache = unavailable(`进程采样失败：${error instanceof Error ? error.message : String(error)}`); }).finally(() => { inFlight = null; });

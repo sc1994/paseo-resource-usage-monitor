@@ -40,6 +40,16 @@ export const hostStatsRpc = defineRpc({
     cpuModel: z.string(),
     loadAverage: z.tuple([z.number(), z.number(), z.number()]),
     memory: memorySchema,
+    gpu: z.object({
+      devices: z.array(z.object({
+        index: z.number().int().nonnegative(),
+        name: z.string(),
+        utilizationPercent: z.number().nullable(),
+        memoryUsedBytes: z.number().nullable(),
+        memoryTotalBytes: z.number().nullable(),
+      })),
+      reason: z.string().nullable(),
+    }),
     network: z
       .object({ rxTotalBytes: z.number(), txTotalBytes: z.number() })
       .nullable(),

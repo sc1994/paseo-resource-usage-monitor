@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import type { hostStatsRpc } from "../shared/stats";
 import { ProcessPanel } from "./processes";
+import { HostQuickPreview } from "./quick-preview";
 import { formatBytes, formatCompactRate, formatPercent, formatRate, formatUptime } from "./format";
 import {
   Meter,
@@ -236,7 +237,7 @@ function layoutWidth(event: LayoutChangeEvent): number {
   return event.nativeEvent.layout.width;
 }
 
-export function HostStatusItem({ theme, openScreen }: PluginSidebarItemProps) {
+export function HostStatusItem({ theme, openPopover }: PluginSidebarItemProps) {
   const { data } = useHostStats();
   const [available, setAvailable] = useState<number | null>(null);
   const [measuredSlot, setMeasuredSlot] = useState<number | null>(null);
@@ -256,7 +257,7 @@ export function HostStatusItem({ theme, openScreen }: PluginSidebarItemProps) {
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={describe(data)}
-      onPress={() => openScreen({ screenId: "resources" })}
+      onPress={() => openPopover(HostQuickPreview)}
       style={triggerStyle(theme)}
     >
       <View
@@ -431,6 +432,19 @@ function HostOverview({ theme }: { theme: PluginTheme }) {
         values={history.map((s) => s.memoryPercent)}
         detail={memoryDetail(memory)}
       />
+      {data.gpu.devices.length ? data.gpu.devices.map((gpu) => (
+        <View key={gpu.index} style={{ gap: 5, minWidth: 0 }}>
+          <Text numberOfLines={1} style={{ color: theme.colors.foreground, fontSize: FONT_SIZE }}>GPU {gpu.index} · {gpu.name}</Text>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 8 }}>
+            <Text style={{ color: theme.colors.foregroundMuted, fontSize: FONT_SIZE }}>GPU利用率</Text>
+            <Text style={{ color: theme.colors.foreground, fontSize: FONT_SIZE }}>{gpu.utilizationPercent === null ? "--" : formatPercent(gpu.utilizationPercent)}</Text>
+          </View>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 8 }}>
+            <Text style={{ color: theme.colors.foregroundMuted, fontSize: FONT_SIZE }}>GPU显存</Text>
+            <Text style={{ color: theme.colors.foreground, fontSize: FONT_SIZE }}>{gpu.memoryUsedBytes === null ? "--" : formatBytes(gpu.memoryUsedBytes)} / {gpu.memoryTotalBytes === null ? "--" : formatBytes(gpu.memoryTotalBytes)}</Text>
+          </View>
+        </View>
+      )) : <Text style={{ color: theme.colors.foregroundMuted, fontSize: FONT_SIZE }}>GPU：-- · {data.gpu.reason ?? "不可用"}</Text>}
       {network ? (
         <>
           <PreviewRow
@@ -456,10 +470,10 @@ function HostOverview({ theme }: { theme: PluginTheme }) {
   );
 }
 
-export function HostMonitorScreen({ theme }: PluginScreenProps) {
+export function HostMonitorScreen({ theme, host, params }: PluginScreenProps) {
   const [width, setWidth] = useState<number | null>(null);
   const compact = width === null || width < 1000;
-  const [tab, setTab] = useState<"overview" | "process">("overview");
+  const [tab, setTab] = useState<"overview" | "process">(params.tab === "process" ? "process" : "overview");
   return (
     <View onLayout={(event) => setWidth(event.nativeEvent.layout.width)} style={{ flex: 1, minWidth: 0, minHeight: 0, alignSelf: "stretch", backgroundColor: theme.colors.surface1 }}>
     <ScrollView style={{ flex: 1, minHeight: 0, width: "100%" }}>
@@ -470,7 +484,7 @@ export function HostMonitorScreen({ theme }: PluginScreenProps) {
       </View> : null}
       <View style={{ flexDirection: compact ? "column" : "row", minWidth: 0 }}>
         {!compact || tab === "overview" ? <View style={{ width: compact ? "100%" : 300, padding: 20, borderRightWidth: compact ? 0 : 1, borderColor: theme.colors.border }}><HostOverview theme={theme} /></View> : null}
-        {!compact || tab === "process" ? <View style={{ flex: 1, minWidth: 0, padding: 20 }}><ProcessPanel theme={theme} compact={compact} /></View> : null}
+        {!compact || tab === "process" ? <View style={{ flex: 1, minWidth: 0, padding: 20 }}><ProcessPanel theme={theme} compact={compact} hostId={host.id} /></View> : null}
       </View>
     </ScrollView>
     </View>

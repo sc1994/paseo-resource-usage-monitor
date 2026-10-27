@@ -234,6 +234,33 @@ async function readDisks(): Promise<DiskUsage[]> {
 
 export type HostStats = RpcOutput<typeof hostStatsRpc>;
 
+type HostGpu = HostStats["gpu"];
+
+export function parseHostGpu(output: string): HostGpu["devices"] {
+  const number = (field: string | undefined, max: number): number | null => {
+    if (!field || !/^\d+(?:\.\d+)?$/.test(field)) return null;
+    const value = Number(field);
+    return Number.isFinite(value) && value <= max ? value : null;
+  };
+  const devices: HostGpu["devices"] = [];
+  for (const line of output.split("\n")) {
+    const fields = line.split(",").map((field) => field.trim());
+    if (fields.length !== 5 || !/^\d+$/.test(fields[0] ?? "") || !fields[1]) continue;
+    const index = Number(fields[0]);
+    if (!Number.isSafeInteger(index)) continue;
+    const used = number(fields[3], Number.MAX_SAFE_INTEGER / 1024 / 1024);
+    const total = number(fields[4], Number.MAX_SAFE_INTEGER / 1024 / 1024);
+    devices.push({
+      index,
+      name: fields[1],
+      utilizationPercent: number(fields[2], 100),
+      memoryUsedBytes: used === null ? null : used * 1024 * 1024,
+      memoryTotalBytes: total === null ? null : total * 1024 * 1024,
+    });
+  }
+  return devices;
+}
+
 export function startSampler(): { read(): Promise<HostStats>; stop(): void } {
   const isMac = process.platform === "darwin";
   const history: HostSample[] = [];
@@ -246,6 +273,19 @@ export function startSampler(): { read(): Promise<HostStats>; stop(): void } {
   let macMemory: MemoryUsage | null = null;
   let macMemoryRead: Promise<void> | null = null;
   let memory = readMemory();
+  let gpu: HostGpu = { devices: [], reason: process.platform === "linux" ? "正在采集 NVIDIA GPU 数据" : "仅支持 Linux NVIDIA GPU 采样" };
+  let gpuRead: Promise<void> | null = null;
+
+  const refreshGpu = () => {
+    if (process.platform !== "linux" || gpuRead) return;
+    gpuRead = execFileAsync("nvidia-smi", ["--query-gpu=index,name,utilization.gpu,memory.used,memory.total", "--format=csv,noheader,nounits"], { timeout: 1500 })
+      .then(({ stdout }) => {
+        const devices = parseHostGpu(stdout);
+        gpu = { devices, reason: devices.length ? null : "未读取到 NVIDIA GPU 设备" };
+      })
+      .catch(() => { gpu = { devices: [], reason: "无法读取 NVIDIA GPU 数据" }; })
+      .finally(() => { gpuRead = null; });
+  };
 
   // vm_stat runs as a separate process, so each tick uses the reading the previous one started.
   const refreshMacMemory = () => {
@@ -267,6 +307,7 @@ export function startSampler(): { read(): Promise<HostStats>; stop(): void } {
     const totalDelta = cpu.total - previousCpu.total;
     const idleDelta = cpu.idle - previousCpu.idle;
     if (isMac) void refreshMacMemory();
+    refreshGpu();
     memory = macMemory ?? readMemory();
 
     const sample: HostSample = {
@@ -299,7 +340,8 @@ export function startSampler(): { read(): Promise<HostStats>; stop(): void } {
   };
 
   // On macOS the first sample waits for vm_stat, so the history does not open with os.freemem's figure.
-  const firstSample = isMac ? refreshMacMemory().then(tick) : Promise.resolve(tick());
+  const firstSample = (isMac ? refreshMacMemory().then(tick) : Promise.resolve(tick()))
+    .then(async () => { if (gpuRead) await gpuRead; });
   refreshDisks();
   const timer = setInterval(tick, SAMPLE_INTERVAL_MS);
   const diskTimer = setInterval(refreshDisks, DISK_INTERVAL_MS);
@@ -318,6 +360,7 @@ export function startSampler(): { read(): Promise<HostStats>; stop(): void } {
         cpuModel: cpus[0]?.model ?? "unknown",
         loadAverage: [one, five, fifteen],
         memory,
+        gpu,
         network: networkTotals
           ? { rxTotalBytes: networkTotals.rx, txTotalBytes: networkTotals.tx }
           : null,

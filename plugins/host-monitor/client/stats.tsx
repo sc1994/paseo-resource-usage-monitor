@@ -15,7 +15,7 @@ const REFRESH_MS = 2000;
 export function useHostStats() {
   const getStats = useRpc(hostStatsRpc);
   return useQuery({
-    queryKey: ["host-stats"],
+    queryKey: ["host-stats", "gpu-v2"],
     queryFn: () => getStats({}),
     refetchInterval: REFRESH_MS,
   });
