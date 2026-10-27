@@ -1,16 +1,16 @@
 import type { PluginTheme } from "@getpaseo/plugin";
 import { useRpc } from "@getpaseo/plugin/client";
 import { Modal } from "@getpaseo/plugin/client/ui";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Pressable, Text, View } from "react-native";
-import { processStatsRpc, terminateProcessRpc, type GpuMode, type ProcessStats, type ProcessUsage } from "../shared/processes";
+import { terminateProcessRpc, type GpuMode, type ProcessStats, type ProcessUsage } from "../shared/processes";
 import { formatBytes, formatRate } from "./format";
-import { networkTotal, orderProcesses, type SortDirection, type SortKey } from "./process-order";
+import { networkTotal, type SortKey } from "./process-order";
+import { processKeys as keys, useProcessState } from "./process-state";
 import { loadColor } from "./stats";
 
 type FocusTarget = View & { focus?: () => void };
-const keys: SortKey[] = ["cpu", "memory", "gpu", "network"];
 const percentage = (value: number | null) => value === null ? "--" : `${value.toFixed(1)}%`;
 const rate = (value: number | null) => value === null ? "--" : formatRate(value);
 const memory = (value: number | null) => value === null ? "--" : formatBytes(value);
@@ -19,25 +19,18 @@ function gpuValue(process: ProcessUsage, mode: GpuMode): string {
   return mode === "utilization" ? percentage(process.gpuPercent) : "--";
 }
 
-export function ProcessPanel({ theme, compact }: { theme: PluginTheme; compact: boolean }) {
-  const getProcesses = useRpc(processStatsRpc);
+export function ProcessPanel({ theme, compact, hostId }: { theme: PluginTheme; compact: boolean; hostId: string }) {
   const terminate = useRpc(terminateProcessRpc);
   const [selected, setSelected] = useState<ProcessUsage | null>(null);
   const [frozen, setFrozen] = useState<ProcessStats | null>(null);
-  const [sort, setSort] = useState<SortKey>("cpu");
-  const [direction, setDirection] = useState<SortDirection>("desc");
   const [message, setMessage] = useState("");
   const [result, setResult] = useState("");
   const [blocked, setBlocked] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const cancelRef = useRef<FocusTarget>(null);
   const sortRef = useRef<FocusTarget>(null);
-  const query = useQuery({
-    queryKey: ["host-processes"], queryFn: () => getProcesses({}),
-    enabled: selected === null, refetchInterval: selected === null ? 2000 : false,
-  });
+  const { query, data, labels, disabled, activeSort, activeDirection, rows: orderedRows, changeSort } = useProcessState(hostId, selected === null, frozen);
   const mutation = useMutation({ mutationFn: terminate });
-  const data = frozen ?? query.data;
   useEffect(() => {
     if (!selected) return;
     const timer = setTimeout(() => cancelRef.current?.focus?.(), 100);
@@ -71,19 +64,10 @@ export function ProcessPanel({ theme, compact }: { theme: PluginTheme; compact: 
       setMessage(`请求失败，请重试或取消。${error instanceof Error ? ` ${error.message}` : ""}`);
     }
   };
-  const changeSort = (key: SortKey) => {
-    if (selected) return;
-    if (sort === key) setDirection(direction === "desc" ? "asc" : "desc");
-    else { setSort(key); setDirection("desc"); }
-  };
   const fg = theme.colors.foreground;
   const muted = theme.colors.foregroundMuted;
   const border = theme.colors.border;
-  const labels: Record<SortKey, string> = { cpu: "CPU", memory: "内存", gpu: data?.capabilities.gpu.mode === "memory" ? "GPU显存" : data?.capabilities.gpu.mode === "utilization" ? "GPU利用率" : "GPU", network: "网络" };
-  const disabled = (key: SortKey) => key === "cpu" ? !data?.capabilities.cpu.available : key === "memory" ? !data?.processes.some((process) => process.memoryBytes !== null) : key === "gpu" ? data?.capabilities.gpu.mode === "unavailable" : !data?.capabilities.network.available;
-  const activeSort = disabled(sort) ? keys.find((key) => !disabled(key)) ?? "cpu" : sort;
-  const activeDirection = activeSort === sort ? direction : "desc";
-  const rows = data ? orderProcesses(data.processes, activeSort, activeDirection, data.capabilities.gpu.mode).slice(0, 12) : [];
+  const rows = orderedRows.slice(0, 12);
   const sortButtons = keys.map((key) => (
     <Pressable key={key} ref={key === activeSort ? sortRef : undefined} accessibilityRole="button"
       accessibilityLabel={`${labels[key]}排序${activeSort === key ? activeDirection === "desc" ? "降序" : "升序" : ""}`}

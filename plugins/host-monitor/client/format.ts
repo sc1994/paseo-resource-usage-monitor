@@ -29,6 +29,11 @@ export function formatCompactRate(bytesPerSec: number): string {
   return "";
 }
 
+export function compactBytes(value: number | null): string {
+  if (value === null) return "--";
+  return value < 1024 ? `${Math.round(value)}B` : formatCompactRate(value);
+}
+
 export function formatUptime(seconds: number): string {
   const days = Math.floor(seconds / 86400);
   const hours = Math.floor((seconds % 86400) / 3600);
