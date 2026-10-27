@@ -1,7 +1,7 @@
 import { useRpc } from "@getpaseo/plugin/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { processStatsRpc, type ProcessStats } from "../shared/processes";
-import { orderProcesses, type SortDirection, type SortKey } from "./process-order";
+import { groupProcesses, type SortDirection, type SortKey } from "./process-order";
 
 export const processKeys = ["cpu", "memory", "gpu", "gpuMemory", "network"] as const;
 type Sort = { key: SortKey; direction: SortDirection };
@@ -23,10 +23,10 @@ export function useProcessState(hostId: string, enabled = true, frozen: ProcessS
   const disabled = (key: SortKey) => key === "cpu" ? !data?.capabilities.cpu.available : key === "memory" ? !data?.processes.some((process) => process.memoryBytes !== null) : key === "gpu" ? !data?.capabilities.gpu.utilization.available : key === "gpuMemory" ? !data?.capabilities.gpu.memory.available : !data?.capabilities.network.available;
   const activeSort = disabled(sort.key) ? processKeys.find((key) => !disabled(key)) ?? "cpu" : sort.key;
   const activeDirection = activeSort === sort.key ? sort.direction : "desc";
-  const rows = data ? orderProcesses(data.processes, activeSort, activeDirection) : [];
+  const groups = data ? groupProcesses(data.processes, activeSort, activeDirection) : [];
   const changeSort = (key: SortKey) => {
     if (!enabled || disabled(key)) return;
     client.setQueryData<Sort>(sortKey, { key, direction: activeSort === key && activeDirection === "desc" ? "asc" : "desc" });
   };
-  return { query, data, labels, disabled, activeSort, activeDirection, rows, changeSort };
+  return { query, data, labels, disabled, activeSort, activeDirection, groups, changeSort };
 }

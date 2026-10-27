@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { terminateProcessRpc, type ProcessStats, type ProcessUsage } from "../shared/processes";
 import { formatBytes, formatRate } from "./format";
-import { networkTotal } from "./process-order";
+import { networkTotal, orderProcesses, type ProcessGroup, type ProcessResources } from "./process-order";
 import { processKeys as keys, useProcessState } from "./process-state";
 import { loadColor } from "./stats";
 
@@ -23,9 +23,10 @@ export function ProcessPanel({ theme, compact, hostId }: { theme: PluginTheme; c
   const [result, setResult] = useState("");
   const [blocked, setBlocked] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
+  const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
   const cancelRef = useRef<FocusTarget>(null);
   const sortRef = useRef<FocusTarget>(null);
-  const { query, data, labels, disabled, activeSort, activeDirection, rows: orderedRows, changeSort } = useProcessState(hostId, selected === null, frozen);
+  const { query, data, labels, disabled, activeSort, activeDirection, groups, changeSort } = useProcessState(hostId, selected === null, frozen);
   const mutation = useMutation({ mutationFn: terminate });
   useEffect(() => {
     if (!selected) return;
@@ -63,7 +64,7 @@ export function ProcessPanel({ theme, compact, hostId }: { theme: PluginTheme; c
   const fg = theme.colors.foreground;
   const muted = theme.colors.foregroundMuted;
   const border = theme.colors.border;
-  const rows = orderedRows.slice(0, 12);
+  const rows = groups.slice(0, 12);
   const sortButtons = keys.map((key) => {
     const sortKey = key === "network" && (activeSort === "download" || activeSort === "upload") ? activeSort : key;
     const active = sortKey === activeSort;
@@ -78,22 +79,63 @@ export function ProcessPanel({ theme, compact, hostId }: { theme: PluginTheme; c
       </Text>
     </Pressable>;
   });
+  const renderProcess = (process: ProcessUsage, indented = false) => {
+    if (!data) return null;
+    const allowed = process.canTerminate && data.capabilities.release.available;
+    const reason = process.protectionReason ?? data.capabilities.release.reason ?? "不可结束";
+    const resources: Record<(typeof keys)[number], string> = { cpu: percentage(process.cpuPercent), memory: memory(process.memoryBytes), gpu: percentage(process.gpuPercent), gpuMemory: memory(process.gpuMemoryBytes), network: rate(networkTotal(process)) };
+    const action = <View style={{ alignItems: "flex-end", width: compact ? 64 : 62 }}>
+      <Pressable accessibilityRole="button" accessibilityLabel={`释放 ${process.name}，PID ${process.pid}${allowed ? "" : `，${reason}`}`}
+        disabled={!allowed || !!selected} onPress={() => { setFrozen(data); setSelected({ ...process }); setResult(""); }}
+        style={{ minHeight: compact ? 44 : 28, minWidth: 56, alignItems: "center", justifyContent: "center", borderWidth: allowed ? 1 : 0, borderColor: border, borderRadius: 4 }}>
+        <Text style={{ color: allowed ? fg : muted, fontSize: 12 }}>{allowed ? "释放" : process.protectionReason === "非当前用户进程" ? "无权限" : process.protectionReason === "受保护的系统或服务进程" ? "受保护" : "受限"}</Text>
+      </Pressable>
+    </View>;
+    const identity = <View style={{ flex: 2, minWidth: 0 }}><Text numberOfLines={1} style={{ color: fg, fontSize: 13, fontWeight: "600" }}>{process.name}</Text><Text style={{ color: muted, fontSize: 11 }}>PID {process.pid} · {process.user}</Text></View>;
+    const cells = keys.map((key) => <View key={key} style={{ flex: compact ? undefined : key === "network" ? 1.6 : 1, width: compact ? "50%" : undefined, minWidth: 0, alignItems: compact ? "flex-start" : "flex-end" }}>
+      <Text numberOfLines={1} style={{ color: key === "cpu" && process.cpuPercent !== null && process.cpuPercent >= 70 ? loadColor(theme, process.cpuPercent) : key === "gpu" && process.gpuPercent !== null && process.gpuPercent >= 70 ? loadColor(theme, process.gpuPercent) : fg, fontSize: 12, fontVariant: ["tabular-nums"] }}>{compact ? `${labels[key]} ` : ""}{resources[key]}</Text>
+      {key === "network" && (process.rxBytesPerSec !== null || process.txBytesPerSec !== null) ? <Text style={{ color: muted, fontSize: 10, fontVariant: ["tabular-nums"], textAlign: compact ? "left" : "right" }}>↓ {rate(process.rxBytesPerSec)} · ↑ {rate(process.txBytesPerSec)}</Text> : null}
+    </View>);
+    return <View key={`${process.pid}:${process.startTime}`} style={{ minHeight: compact ? 64 : 40, paddingVertical: compact ? 3 : 2, paddingLeft: indented ? 12 : 0, borderBottomWidth: 1, borderColor: border }}>
+      {compact ? <><View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>{identity}{action}</View><View style={{ flexDirection: "row", flexWrap: "wrap" }}>{cells}</View></> : <View style={{ flexDirection: "row", alignItems: "center" }}>{identity}{cells}{action}</View>}
+    </View>;
+  };
+  const renderGroup = (group: ProcessGroup) => {
+    if (group.members.length === 1) return <View key={group.name}>{renderProcess(group.members[0])}</View>;
+    const opened = expanded.has(group.name);
+    const field = (name: keyof ProcessResources, format: (n: number | null) => string) => `${group.usage[name] !== null && group.partial.has(name) ? "≥" : ""}${format(group.usage[name])}`;
+    const rx = group.usage.rxBytesPerSec, tx = group.usage.txBytesPerSec;
+    const total = networkTotal(group.usage);
+    const networkPartial = total !== null && (group.partial.has("rxBytesPerSec") || group.partial.has("txBytesPerSec"));
+    const values: Record<(typeof keys)[number], string> = { cpu: field("cpuPercent", percentage), memory: field("memoryBytes", memory), gpu: field("gpuPercent", percentage), gpuMemory: field("gpuMemoryBytes", memory), network: `${networkPartial ? "≥" : ""}${rate(total)}` };
+    const toggle = () => setExpanded((previous) => { const next = new Set(previous); if (next.has(group.name)) next.delete(group.name); else next.add(group.name); return next; });
+    const identity = <Pressable accessibilityRole="button" accessibilityLabel={`${group.name}，${group.members.length}个进程`} accessibilityState={{ expanded: opened, disabled: !!selected }} aria-expanded={opened} disabled={!!selected} onPress={toggle} style={{ flex: 2, minWidth: 0, minHeight: 44, justifyContent: "center" }}>
+      <Text numberOfLines={1} style={{ color: fg, fontSize: 13, fontWeight: "600" }}>{opened ? "▾" : "▸"} {group.name}</Text><Text style={{ color: muted, fontSize: 11 }}>{group.members.length}个进程</Text>
+    </Pressable>;
+    const cells = keys.map((key) => <View key={key} style={{ flex: compact ? undefined : key === "network" ? 1.6 : 1, width: compact ? "50%" : undefined, minWidth: 0, alignItems: compact ? "flex-start" : "flex-end" }}>
+      <Text style={{ color: fg, fontSize: 12, fontVariant: ["tabular-nums"] }}>{compact ? `${labels[key]} ` : ""}{values[key]}</Text>
+      {key === "network" && (rx !== null || tx !== null) ? <Text style={{ color: muted, fontSize: 10 }}>↓ {field("rxBytesPerSec", rate)} · ↑ {field("txBytesPerSec", rate)}</Text> : null}
+    </View>);
+    return <View key={group.name}><View style={{ minHeight: 44, paddingVertical: 2, borderBottomWidth: 1, borderColor: border }}>
+      {compact ? <>{identity}<View style={{ flexDirection: "row", flexWrap: "wrap" }}>{cells}</View></> : <View style={{ flexDirection: "row", alignItems: "center" }}>{identity}{cells}<View style={{ width: 62 }} /></View>}
+    </View>{opened ? orderProcesses(group.members, activeSort, activeDirection).map((process) => renderProcess(process, true)) : null}</View>;
+  };
   return (
     <View style={{ flex: 1, minWidth: 0 }}>
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}><Text style={{ color: fg, fontSize: 14, fontWeight: "600" }}>高占用进程</Text>
-          {data ? <Text style={{ color: muted, fontSize: 12 }}>{Math.min(data.processes.length, 12)} / {data.processes.length}</Text> : null}</View>
+          {data ? <Text style={{ color: muted, fontSize: 12 }}>{Math.min(groups.length, 12)} / {groups.length}组 · {data.processes.length}个进程</Text> : null}</View>
         <Pressable accessibilityRole="button" accessibilityState={{ expanded: showDetails }} onPress={() => setShowDetails(!showDetails)} style={{ minHeight: compact ? 44 : 32, justifyContent: "center" }}><Text style={{ color: theme.colors.accent, fontSize: 12 }}>采集说明 {showDetails ? "↑" : "↓"}</Text></Pressable>
       </View>
       {data && showDetails ? <View style={{ gap: 3, paddingVertical: 8 }}>
-        <Text style={{ color: muted, fontSize: 12 }}>-- 表示数据不可用。CPU 100% 表示占用 1 个核心。内存为 RSS，可能包含共享页，各进程相加不等于主机已用内存。网络为可归属的可见 TCP 持续连接上下行总速率，不含 UDP 和短连接。</Text>
+        <Text style={{ color: muted, fontSize: 12 }}>-- 表示数据不可用，≥ 表示部分成员已知值之和。CPU 100% 表示占用 1 个核心。内存为 RSS，可能包含共享页，各进程相加不等于主机已用内存。网络为可归属的可见 TCP 持续连接上下行总速率，不含 UDP 和短连接。</Text>
         {!data.capabilities.cpu.available ? <Text style={{ color: theme.colors.statusWarning, fontSize: 12 }}>CPU：{data.capabilities.cpu.reason ?? "不可用"}</Text> : null}
         {!data.capabilities.gpu.utilization.available ? <Text style={{ color: theme.colors.statusWarning, fontSize: 12 }}>GPU利用率：{data.capabilities.gpu.utilization.reason ?? "不可用"}</Text> : null}
         {!data.capabilities.gpu.memory.available ? <Text style={{ color: theme.colors.statusWarning, fontSize: 12 }}>GPU显存：{data.capabilities.gpu.memory.reason ?? "不可用"}</Text> : null}
         {data.capabilities.network.reason ? <Text style={{ color: theme.colors.statusWarning, fontSize: 12 }}>网络：{data.capabilities.network.reason}</Text> : null}
         {!data.capabilities.network.available && !data.capabilities.network.reason ? <Text style={{ color: theme.colors.statusWarning, fontSize: 12 }}>网络进程采集不可用</Text> : null}
         {!data.capabilities.release.available ? <Text style={{ color: theme.colors.statusWarning, fontSize: 12 }}>释放：{data.capabilities.release.reason ?? "不可用"}</Text> : null}
-        {rows.filter((process) => !process.canTerminate && process.protectionReason).map((process) => <Text key={`${process.pid}:${process.startTime}`} style={{ color: muted, fontSize: 12 }}>PID {process.pid} · {process.name}：{process.protectionReason}</Text>)}
+        {data.processes.filter((process) => !process.canTerminate && process.protectionReason).map((process) => <Text key={`${process.pid}:${process.startTime}`} style={{ color: muted, fontSize: 12 }}>PID {process.pid} · {process.name}：{process.protectionReason}</Text>)}
       </View> : null}
       {data && query.isError ? <Text style={{ color: theme.colors.statusWarning, fontSize: 12 }}>进程刷新失败，显示上次采样结果。</Text> : null}
       {!data && query.isPending ? <Text style={{ color: muted }}>正在采集进程数据</Text> : null}
@@ -104,26 +146,7 @@ export function ProcessPanel({ theme, compact, hostId }: { theme: PluginTheme; c
           {compact ? sortButtons : keys.map((key, index) => <View key={key} style={{ flex: key === "network" ? 1.6 : 1, alignItems: "flex-end" }}>{sortButtons[index]}</View>)}
           {!compact ? <Text style={{ width: 62, textAlign: "right", color: muted, fontSize: 12 }}>操作</Text> : null}
         </View>
-        {rows.length === 0 ? <Text style={{ color: muted }}>暂无进程数据</Text> : rows.map((process) => {
-          const allowed = process.canTerminate && data.capabilities.release.available;
-          const reason = process.protectionReason ?? data.capabilities.release.reason ?? "不可结束";
-          const resources: Record<(typeof keys)[number], string> = { cpu: percentage(process.cpuPercent), memory: memory(process.memoryBytes), gpu: percentage(process.gpuPercent), gpuMemory: memory(process.gpuMemoryBytes), network: rate(networkTotal(process)) };
-          const action = <View style={{ alignItems: "flex-end", width: compact ? 64 : 62 }}>
-            <Pressable accessibilityRole="button" accessibilityLabel={`释放 ${process.name}，PID ${process.pid}${allowed ? "" : `，${reason}`}`}
-              disabled={!allowed || !!selected} onPress={() => { setFrozen(data); setSelected({ ...process }); setResult(""); }}
-              style={{ minHeight: compact ? 44 : 28, minWidth: 56, alignItems: "center", justifyContent: "center", borderWidth: allowed ? 1 : 0, borderColor: border, borderRadius: 4 }}>
-              <Text style={{ color: allowed ? fg : muted, fontSize: 12 }}>{allowed ? "释放" : process.protectionReason === "非当前用户进程" ? "无权限" : process.protectionReason === "受保护的系统或服务进程" ? "受保护" : "受限"}</Text>
-            </Pressable>
-          </View>;
-          const identity = <View style={{ flex: 2, minWidth: 0 }}><Text numberOfLines={1} style={{ color: fg, fontSize: 13, fontWeight: "600" }}>{process.name}</Text><Text style={{ color: muted, fontSize: 11 }}>PID {process.pid} · {process.user}</Text></View>;
-          const cells = keys.map((key) => <View key={key} style={{ flex: compact ? undefined : key === "network" ? 1.6 : 1, width: compact ? "50%" : undefined, minWidth: 0, alignItems: compact ? "flex-start" : "flex-end" }}>
-            <Text numberOfLines={1} style={{ color: key === "cpu" && process.cpuPercent !== null && process.cpuPercent >= 70 ? loadColor(theme, process.cpuPercent) : key === "gpu" && process.gpuPercent !== null && process.gpuPercent >= 70 ? loadColor(theme, process.gpuPercent) : fg, fontSize: 12, fontVariant: ["tabular-nums"] }}>{compact ? `${labels[key]} ` : ""}{resources[key]}</Text>
-            {key === "network" && (process.rxBytesPerSec !== null || process.txBytesPerSec !== null) ? <Text style={{ color: muted, fontSize: 10, fontVariant: ["tabular-nums"], textAlign: compact ? "left" : "right" }}>↓ {rate(process.rxBytesPerSec)} · ↑ {rate(process.txBytesPerSec)}</Text> : null}
-          </View>);
-          return <View key={`${process.pid}:${process.startTime}`} style={{ minHeight: compact ? 64 : 40, paddingVertical: compact ? 3 : 2, borderBottomWidth: 1, borderColor: border }}>
-            {compact ? <><View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>{identity}{action}</View><View style={{ flexDirection: "row", flexWrap: "wrap" }}>{cells}</View></> : <View style={{ flexDirection: "row", alignItems: "center" }}>{identity}{cells}{action}</View>}
-          </View>;
-        })}
+        {rows.length === 0 ? <Text style={{ color: muted }}>暂无进程数据</Text> : rows.map(renderGroup)}
       </> : null}
       {result ? <Text accessibilityLiveRegion="polite" style={{ color: theme.colors.accent, fontSize: 12 }}>{result}</Text> : null}
       <Modal title="结束进程并释放资源？" open={selected !== null} onOpenChange={(open) => { if (!open) close(); }}>

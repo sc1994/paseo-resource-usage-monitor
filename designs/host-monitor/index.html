@@ -481,6 +481,8 @@ dialog::backdrop{
   color:#e2cca1;
   font-size:12px
 }
+.group-toggle{min-height:44px;border:0;background:transparent;color:inherit;text-align:left;cursor:pointer;padding:0}
+.group-member td:first-child{padding-left:12px}
 .mobile-sort{
   display:none
 }
@@ -632,7 +634,7 @@ dialog::backdrop{
 }
 </style></head><body>
 <div class="preview"><div class="preview-label"><strong>Host monitor</strong>　/　交互设计稿 · 示例数据</div><label class="preview-control">预览状态 <select id="scenario"><option value="normal">正常</option><option value="gpu">GPU 未检测到 / 不支持采集</option><option value="network">网络采集权限不足</option><option value="loading">加载中</option><option value="error">采集失败</option><option value="empty">空列表</option><option value="permission">释放权限不足</option><option value="exited">进程已退出</option><option value="failed">结束失败</option></select></label></div>
-<div id="resources-view" hidden><a id="back-preview" class="back-link" href="#preview">← 返回浮窗预览</a><main class="shell"><header class="host-head"><div class="host-title"><div class="host-icon" aria-hidden="true">▦</div><div><h1>ai-vm</h1><div class="sub">Linux · 12 核 · 运行 3 天 19 小时 · 负载 4.51 / 3.26 / 2.24</div></div></div><div class="status"><span class="dot"></span>采样正常</div></header><div class="tabs" role="tablist" aria-label="主机监控视图"><button role="tab" aria-selected="true" data-tab="overview">主机概览</button><button role="tab" aria-selected="false" data-tab="process">进程</button></div><div class="columns"><section class="overview" id="overview"><h2 class="section-title">主机概览</h2><p class="section-caption">最近 60 秒</p><div id="metrics"></div><div class="disk"><div class="metric-head"><span>▤　磁盘 · 186.4 GB / 320 GB</span><strong class="mono">58%</strong></div><div class="disk-row"><div class="disk-label"><span>/</span><span class="mono">116.4 / 200 GB · 58%</span></div><div class="meter"><i style="width:58%"></i></div></div><div class="disk-row"><div class="disk-label"><span>/data</span><span class="mono">70 / 120 GB · 58%</span></div><div class="meter"><i style="width:58%"></i></div></div></div></section><section class="process mobile-hidden" id="process"><div class="process-heading"><div><h2 class="section-title">高占用进程</h2><span class="count" id="count"></span></div><button class="details-toggle" id="details-toggle" aria-expanded="false" aria-controls="collection-details">采集说明 ↓</button></div><div class="details" id="collection-details" hidden><p>-- 表示数据不可用。CPU 100% 表示占用 1 个核心；内存为 RSS，可能包含共享页，各进程相加不等于主机已用内存；网络为可归属的可见 TCP 持续连接上下行总速率，不含 UDP 和短连接。</p><div id="availability" class="availability" aria-live="polite"></div><p id="protection-details"></p></div><div class="mobile-sort" id="mobile-sort"><span>排序</span></div><div id="content"></div><div id="toast" aria-live="polite"></div></section></div></main></div>
+<div id="resources-view" hidden><a id="back-preview" class="back-link" href="#preview">← 返回浮窗预览</a><main class="shell"><header class="host-head"><div class="host-title"><div class="host-icon" aria-hidden="true">▦</div><div><h1>ai-vm</h1><div class="sub">Linux · 12 核 · 运行 3 天 19 小时 · 负载 4.51 / 3.26 / 2.24</div></div></div><div class="status"><span class="dot"></span>采样正常</div></header><div class="tabs" role="tablist" aria-label="主机监控视图"><button role="tab" aria-selected="true" data-tab="overview">主机概览</button><button role="tab" aria-selected="false" data-tab="process">进程</button></div><div class="columns"><section class="overview" id="overview"><h2 class="section-title">主机概览</h2><p class="section-caption">最近 60 秒</p><div id="metrics"></div><div class="disk"><div class="metric-head"><span>▤　磁盘 · 186.4 GB / 320 GB</span><strong class="mono">58%</strong></div><div class="disk-row"><div class="disk-label"><span>/</span><span class="mono">116.4 / 200 GB · 58%</span></div><div class="meter"><i style="width:58%"></i></div></div><div class="disk-row"><div class="disk-label"><span>/data</span><span class="mono">70 / 120 GB · 58%</span></div><div class="meter"><i style="width:58%"></i></div></div></div></section><section class="process mobile-hidden" id="process"><div class="process-heading"><div><h2 class="section-title">高占用进程</h2><span class="count" id="count"></span></div><button class="details-toggle" id="details-toggle" aria-expanded="false" aria-controls="collection-details">采集说明 ↓</button></div><div class="details" id="collection-details" hidden><p>-- 表示数据不可用，≥ 表示部分成员已知值之和。CPU 100% 表示占用 1 个核心；内存为 RSS，可能包含共享页，各进程相加不等于主机已用内存；网络为可归属的可见 TCP 持续连接上下行总速率，不含 UDP 和短连接。</p><div id="availability" class="availability" aria-live="polite"></div><p id="protection-details"></p></div><div class="mobile-sort" id="mobile-sort"><span>排序</span></div><div id="content"></div><div id="toast" aria-live="polite"></div></section></div></main></div>
 <div id="quick-stage" class="quick-stage"><section id="quick-popover" class="quick-popover" aria-label="主机资源快速预览"><div class="quick-head"><strong>ai-vm</strong><span id="quick-status" class="status"><span class="dot"></span>采样正常</span></div><div class="quick-summary"><span>CPU <b>68%</b></span><span>内存 <b>68%</b></span><span>磁盘 <b>58%</b></span><span>网络 <b>↓ 28.4 / ↑ 12.4 MB/s</b></span></div><div id="quick-content" class="quick-content"></div><div class="quick-footer"><a id="details-link" href="#resources">查看资源详情 →</a></div></section><button id="status-trigger" class="anchor" type="button" aria-label="主机状态摘要" aria-expanded="true" aria-controls="quick-popover"><span>▦ CPU <b class="mono">68%</b></span><span>▥ 内存 <b class="mono">68%</b></span><span>▤ 磁盘 <b class="mono">58%</b></span><span>↓↑ 网络 <b class="mono">28.4 / 12.4 MB/s</b></span></button></div>
 <dialog id="confirm" aria-labelledby="dialog-title"><div class="dialog-body"><h2 id="dialog-title">结束进程并释放资源？</h2><p class="warning">将中断该进程正在执行的任务，未保存的数据可能丢失。</p><div class="detail" id="details"></div><p class="dialog-error" id="dialog-error" role="alert" hidden></p></div><div class="dialog-actions"><button class="cancel" id="cancel" autofocus>取消</button><button class="danger" id="submit">结束进程</button></div></dialog>
 <script>
@@ -644,8 +646,9 @@ const initial=[
 {name:'postgres',pid:1124,user:'postgres',cmd:'/usr/lib/postgresql/16/bin/postgres -D /var/lib/postgresql/16/main',cpu:42.7,gpu:null,down:.3,up:.2},
 {name:'paseo daemon',pid:1026,user:'ai',cmd:'paseo daemon start',cpu:5.6,gpu:null,down:.1,up:.1,protected:true},
 {name:'code-server',pid:3402,user:'ai',cmd:'code-server --bind-addr 127.0.0.1:8080 /workspace',cpu:0,gpu:0,down:0,up:0},
-{name:'python worker',pid:7310,user:'ai',cmd:'python worker.py --queue inference',cpu:73.8,gpu:18.2,down:1.2,up:.4}];
-let processes=initial.map((p,i)=>({...p,memory:[268435456,2147483648,12582912,33554432,536870912,67108864,0,null][i],gpuMemory:[null,2147483648,null,null,null,null,0,4294967296][i]})),sortKey='cpu',direction='desc',selected=null,opener=null,pending=false;
+{name:'python worker',pid:7310,user:'ai',cmd:'python worker.py --queue inference',cpu:73.8,gpu:18.2,down:1.2,up:.4},
+{name:'python',pid:7311,user:'other',cmd:'python worker.py',cpu:35,gpu:null,down:0,up:null}];
+let processes=initial.map((p,i)=>({...p,memory:[268435456,2147483648,12582912,33554432,536870912,67108864,0,null,null][i],gpuMemory:[null,2147483648,null,null,null,null,0,4294967296,null][i]})),sortKey='cpu',direction='desc',selected=null,opener=null,pending=false;
 const sampleMemory=processes.map(p=>p.memory),sampleGpuMemory=processes.map(p=>p.gpuMemory);
 const $=id=>document.getElementById(id),scenario=$('scenario');
 function value(p,key){
@@ -661,6 +664,24 @@ function sorted(list,key,dir){
   if(x==null)return 1;
   if(y==null)return -1;
   return (dir==='asc'?x-y:y-x)||a.pid-b.pid})}
+
+const expanded=new Set();
+function grouped(list,key,dir){
+  const groups=new Map();
+  for(const p of list){if(!groups.has(p.name))groups.set(p.name,[]);groups.get(p.name).push(p)}
+  const result=[...groups].map(([name,members])=>{
+    const group={name,members,partial:new Set()};
+    for(const field of ['cpu','memory','gpu','gpuMemory','down','up']){
+      const samples=members.map(p=>value(p,field)).filter(v=>v!=null);
+      group[field]=samples.length?samples.reduce((a,b)=>a+b,0):null;
+      if(samples.length&&samples.length<members.length)group.partial.add(field);
+    }
+    return group;
+  });
+  return result.sort((a,b)=>{const x=value(a,key),y=value(b,key);if(x==null&&y!=null)return 1;if(y==null&&x!=null)return -1;return (x==null?0:(dir==='asc'?x-y:y-x))||a.name.localeCompare(b.name)});
+}
+function partial(p,field){return p.partial?.has(field)?'≥':''}
+function groupButton(p){return `<button class="group-toggle" data-expand="${esc(p.name)}" aria-expanded="${expanded.has(p.name)}">${expanded.has(p.name)?'▾':'▸'} ${esc(p.name)} ×${p.members.length}</button>`}
 
 function canRelease(p){
   return !!p&&!p.protected}
@@ -709,10 +730,11 @@ function renderQuick(){
   }
   const aria=k=>sortKey===k?(direction==='desc'?'descending':'ascending'):'none';
   const headings=[['cpu','CPU'],['memory','内存'],['download','下载'],['upload','上传']];
-  const rows=sorted(processes,sortKey,direction).slice(0,5).map(p=>{
+  const quickRow=(p,group=false)=>{
     const down=value(p,'download'),up=value(p,'upload');
-    return `<tr data-quick-pid="${p.pid}"><td><div class="quick-name">${esc(p.name)}</div><div class="quick-pid">PID ${p.pid}</div></td><td>${p.cpu==null?'--':p.cpu.toFixed(1)+'%'}</td><td>${shortMemory(p.memory)}</td><td>${down==null?'--':down.toFixed(1)+'M/s'}</td><td>${up==null?'--':up.toFixed(1)+'M/s'}</td></tr>`;
-  }).join('');
+    return `<tr ${group?'':`data-quick-pid="${p.pid}"`}><td>${group?groupButton(p):`<div class="quick-name">${esc(p.name)}</div><div class="quick-pid">PID ${p.pid}</div>`}</td><td>${partial(p,'cpu')}${p.cpu==null?'--':p.cpu.toFixed(1)+'%'}</td><td>${partial(p,'memory')}${shortMemory(p.memory)}</td><td>${partial(p,'down')}${down==null?'--':down.toFixed(1)+'M/s'}</td><td>${partial(p,'up')}${up==null?'--':up.toFixed(1)+'M/s'}</td></tr>`;
+  };
+  const rows=grouped(processes,sortKey,direction).slice(0,5).map(g=>g.members.length===1?quickRow(g.members[0]):quickRow(g,true)+(expanded.has(g.name)?sorted(g.members,sortKey,direction).map(p=>quickRow(p)).join(''):'' )).join('');
   const hiddenSort=['gpu','gpuMemory','network'].includes(sortKey)?`<div class="quick-state" style="min-height:0">当前按${{gpu:'GPU利用率',gpuMemory:'GPU显存',network:'网络'}[sortKey]}${direction==='desc'?'降序':'升序'}</div>`:'';
   quick.innerHTML=hiddenSort+`<table id="quick-table" class="quick-table"><thead><tr><th scope="col">进程</th>${headings.map(([k,l])=>`<th scope="col" aria-sort="${aria(k)}">${sortButton(k,l)}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table>`;
 }
@@ -721,19 +743,28 @@ function render(){
   const state=scenario.value,content=$('content'),mobile=$('mobile-sort');
   $('availability').textContent=state==='gpu'?'GPU 未检测到或不支持进程采集。':state==='network'?'网络进程采集权限不足。':'';
   mobile.innerHTML='<span>排序</span>'+[['cpu','CPU'],['memory','内存'],['gpu','GPU利用率'],['gpuMemory','GPU显存'],['network','网络']].map(([k,l])=>sortButton(k,l)).join('');
-  $('count').textContent=(state==='empty'?0:processes.length)+' / '+(state==='empty'?0:processes.length);
+  const groups=state==='empty'?[]:grouped(processes,sortKey,direction);
+  $('count').textContent=Math.min(groups.length,12)+' / '+groups.length+'组 · '+(state==='empty'?0:processes.length)+'个进程';
   $('protection-details').textContent=processes.filter(p=>p.protected).map(p=>`PID ${p.pid} · ${p.name}：守护进程受保护`).join('；');
 if(state==='loading'||state==='error'||state==='empty'){content.innerHTML=state==='loading'?'<div class="message"><strong>正在采集进程数据</strong><span>请稍候</span></div>':state==='error'?'<div class="message"><strong>进程采集失败</strong><span>暂时无法获取进程数据</span><button class="retry" id="retry">重试</button></div>':'<div class="message"><strong>暂无进程数据</strong><span>当前没有可显示的进程</span></div>';
   if($('retry'))$('retry').onclick=()=>{scenario.value='normal';
   render()};
   return}
-const rows=sorted(processes,sortKey,direction).map(p=>{
+const detailRow=(p,group=false)=>{
+  const down=value(p,'download'),up=value(p,'upload');
   const net=value(p,'network');
-  return `<tr><td><div class="name">${esc(p.name)}</div><div class="identity mono">PID ${p.pid} · ${esc(p.user)}</div></td><td class="resource" data-label="CPU">${format(value(p,'cpu'),'%')}</td><td class="resource" data-label="内存">${formatMemory(p.memory)}</td><td class="resource" data-label="GPU利用率">${format(value(p,'gpu'),'%')}</td><td class="resource" data-label="GPU显存">${formatMemory(value(p,'gpuMemory'))}</td><td class="resource" data-label="网络">${format(net,' MB/s')}${net==null?'':`<div class="network-detail mono">↓ ${p.down.toFixed(1)} · ↑ ${p.up.toFixed(1)}</div>`}</td><td class="action">${p.protected?'<span class="protected">受保护</span>':`<button class="release" data-pid="${p.pid}">释放</button>`}</td></tr>`}).join('');
+  const netPartial=group&&net!=null&&(p.partial.has('down')||p.partial.has('up'));
+  const action=group?'':p.protected?'<span class="protected">受保护</span>':`<button class="release" data-pid="${p.pid}">释放</button>`;
+  const identity=group?groupButton(p):`<div class="name">${esc(p.name)}</div><div class="identity mono">PID ${p.pid} · ${esc(p.user)}</div>`;
+  return `<tr class="${group?'':'group-member'}"><td>${identity}</td><td class="resource" data-label="CPU">${partial(p,'cpu')}${format(value(p,'cpu'),'%')}</td><td class="resource" data-label="内存">${partial(p,'memory')}${formatMemory(p.memory)}</td><td class="resource" data-label="GPU利用率">${partial(p,'gpu')}${format(value(p,'gpu'),'%')}</td><td class="resource" data-label="GPU显存">${partial(p,'gpuMemory')}${formatMemory(value(p,'gpuMemory'))}</td><td class="resource" data-label="网络">${netPartial?'≥':''}${format(net,' MB/s')}${down==null&&up==null?'':`<div class="network-detail mono">↓ ${partial(p,'down')}${down==null?'--':down.toFixed(1)} · ↑ ${partial(p,'up')}${up==null?'--':up.toFixed(1)}</div>`}</td><td class="action">${action}</td></tr>`;
+};
+const rows=groups.slice(0,12).map(g=>g.members.length===1?detailRow(g.members[0]):detailRow(g,true)+(expanded.has(g.name)?sorted(g.members,sortKey,direction).map(p=>detailRow(p)).join(''):'' )).join('');
   const aria=k=>sortKey===k?(direction==='desc'?'descending':'ascending'):'none';
   content.innerHTML=`<table class="table"><thead><tr><th scope="col">进程</th><th scope="col" aria-sort="${aria('cpu')}">${sortButton('cpu','CPU')}</th><th scope="col" aria-sort="${aria('memory')}">${sortButton('memory','内存')}</th><th scope="col" aria-sort="${aria('gpu')}">${sortButton('gpu','GPU利用率')}</th><th scope="col" aria-sort="${aria('gpuMemory')}">${sortButton('gpuMemory','GPU显存')}</th><th scope="col" aria-sort="${aria(['download','upload'].includes(sortKey)?sortKey:'network')}">${sortButton('network','网络')}</th><th scope="col">操作</th></tr></thead><tbody>${rows}</tbody></table>`}
 $('details-toggle').onclick=()=>{const details=$('collection-details');details.hidden=!details.hidden;$('details-toggle').setAttribute('aria-expanded',String(!details.hidden));$('details-toggle').textContent=`采集说明 ${details.hidden?'↓':'↑'}`};
 document.addEventListener('click',e=>{
+  const expansion=e.target.closest('[data-expand]');
+  if(expansion){const name=expansion.dataset.expand, region=expansion.closest('#quick-content')?'quick-content':'content';if(expanded.has(name))expanded.delete(name);else expanded.add(name);render();[...$(region).querySelectorAll('[data-expand]')].find(b=>b.dataset.expand===name)?.focus();return}
   const button=e.target.closest('[data-sort]');
   if(button)sortBy(button.dataset.sort, button.closest('#quick-content') || button.closest('#mobile-sort') || $('content'));
   if(e.target.closest('#quick-retry')){scenario.value='normal';render();return}
@@ -816,6 +847,8 @@ const metricData=[['▦','CPU · 12 核','68%',false,[12,18,25,31,38,43,56,48,36
 // 手动自检入口：在浏览器控制台调用 hostMonitorSelfCheck()。
 window.hostMonitorSelfCheck=()=>{
   const old=scenario.value;try{scenario.value='normal';
+  const groupCheck=grouped([{name:'a',pid:1,cpu:4,memory:0,gpu:null,gpuMemory:null,down:0,up:null},{name:'a',pid:2,cpu:4,memory:null,gpu:null,gpuMemory:null,down:1,up:0},{name:'b',pid:3,cpu:7,memory:1,gpu:null,gpuMemory:null,down:0,up:0}],'cpu','desc');
+  if(groupCheck[0].name!=='a'||groupCheck[0].cpu!==8||groupCheck[0].memory!==0||!groupCheck[0].partial.has('memory'))throw new Error('分组汇总排序或缺测失败');
   const items=[{pid:2,cpu:null},{pid:3,cpu:5},{pid:1,cpu:5},{pid:4,cpu:9}];
   if(sorted(items,'cpu','desc').map(p=>p.pid).join()!=='4,1,3,2')throw new Error('降序或同值排序失败');
   if(sorted(items,'cpu','asc').map(p=>p.pid).join()!=='1,3,4,2')throw new Error('升序或不可用排序失败');
