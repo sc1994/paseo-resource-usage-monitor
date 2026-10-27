@@ -94,7 +94,7 @@ export function ProcessPanel({ theme, compact, hostId }: { theme: PluginTheme; c
     const identity = <View style={{ flex: 2, minWidth: 0 }}><Text numberOfLines={1} style={{ color: fg, fontSize: 13, fontWeight: "600" }}>{process.name}</Text><Text style={{ color: muted, fontSize: 11 }}>PID {process.pid} · {process.user}</Text></View>;
     const cells = keys.map((key) => <View key={key} style={{ flex: compact ? undefined : key === "network" ? 1.6 : 1, width: compact ? "50%" : undefined, minWidth: 0, alignItems: compact ? "flex-start" : "flex-end" }}>
       <Text numberOfLines={1} style={{ color: key === "cpu" && process.cpuPercent !== null && process.cpuPercent >= 70 ? loadColor(theme, process.cpuPercent) : key === "gpu" && process.gpuPercent !== null && process.gpuPercent >= 70 ? loadColor(theme, process.gpuPercent) : fg, fontSize: 12, fontVariant: ["tabular-nums"] }}>{compact ? `${labels[key]} ` : ""}{resources[key]}</Text>
-      {key === "network" && (process.rxBytesPerSec !== null || process.txBytesPerSec !== null) ? <Text style={{ color: muted, fontSize: 10, fontVariant: ["tabular-nums"], textAlign: compact ? "left" : "right" }}>↓ {rate(process.rxBytesPerSec)} · ↑ {rate(process.txBytesPerSec)}</Text> : null}
+      {key === "network" && (process.rxBytesPerSec !== null || process.txBytesPerSec !== null) ? <Text style={{ width: "100%", color: muted, fontSize: 10, fontVariant: ["tabular-nums"], textAlign: compact ? "left" : "right" }}>↓ {rate(process.rxBytesPerSec)} · ↑ {rate(process.txBytesPerSec)}</Text> : null}
     </View>);
     return <View key={`${process.pid}:${process.startTime}`} style={{ minHeight: compact ? 64 : 40, paddingVertical: compact ? 3 : 2, paddingLeft: indented ? 12 : 0, borderBottomWidth: 1, borderColor: border }}>
       {compact ? <><View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>{identity}{action}</View><View style={{ flexDirection: "row", flexWrap: "wrap" }}>{cells}</View></> : <View style={{ flexDirection: "row", alignItems: "center" }}>{identity}{cells}{action}</View>}
@@ -114,7 +114,7 @@ export function ProcessPanel({ theme, compact, hostId }: { theme: PluginTheme; c
     </Pressable>;
     const cells = keys.map((key) => <View key={key} style={{ flex: compact ? undefined : key === "network" ? 1.6 : 1, width: compact ? "50%" : undefined, minWidth: 0, alignItems: compact ? "flex-start" : "flex-end" }}>
       <Text style={{ color: fg, fontSize: 12, fontVariant: ["tabular-nums"] }}>{compact ? `${labels[key]} ` : ""}{values[key]}</Text>
-      {key === "network" && (rx !== null || tx !== null) ? <Text style={{ color: muted, fontSize: 10 }}>↓ {field("rxBytesPerSec", rate)} · ↑ {field("txBytesPerSec", rate)}</Text> : null}
+      {key === "network" && (rx !== null || tx !== null) ? <Text style={{ width: "100%", color: muted, fontSize: 10, textAlign: compact ? "left" : "right" }}>↓ {field("rxBytesPerSec", rate)} · ↑ {field("txBytesPerSec", rate)}</Text> : null}
     </View>);
     return <View key={group.name}><View style={{ minHeight: 44, paddingVertical: 2, borderBottomWidth: 1, borderColor: border }}>
       {compact ? <>{identity}<View style={{ flexDirection: "row", flexWrap: "wrap" }}>{cells}</View></> : <View style={{ flexDirection: "row", alignItems: "center" }}>{identity}{cells}<View style={{ width: 62 }} /></View>}
