@@ -1,6 +1,6 @@
 # 主机资源监控
 
-在 Paseo 侧栏查看 daemon 宿主机的 CPU、内存、磁盘和网络，点击状态条打开紧凑浮窗，查看前 5 个进程并进入资源详情；进程内存为 RSS。桌面浮窗由宿主限制宽度至 420px，手机使用底部抽屉。功能、采样口径和限制见 [OVERVIEW.md](OVERVIEW.md)。
+在 Paseo 侧栏查看 daemon 宿主机的 CPU、内存、磁盘和网络，点击状态条打开紧凑浮窗，查看前 5 个进程的 CPU、内存、下载和上传并进入资源详情；进程内存为 RSS，详情的 GPU 利用率和显存独立显示和排序。桌面浮窗由宿主限制宽度至 420px，手机使用底部抽屉。功能、采样口径和限制见 [OVERVIEW.md](OVERVIEW.md)。
 
 基于 [a31521424/paseo-kit](https://github.com/a31521424/paseo-kit) 的 host-monitor 插件开发，保留原项目 Apache-2.0 许可证及来源归属。
 

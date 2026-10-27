@@ -18,14 +18,13 @@ const processUsageSchema = z.object({
 });
 
 const capabilitySchema = z.object({ available: z.boolean(), reason: z.string().nullable() });
-const gpuModeSchema = z.enum(["utilization", "memory", "unavailable"]);
 const processStatsSchema = z.object({
   sampledAt: z.number(),
   intervalMs: z.number(),
   processes: z.array(processUsageSchema),
   capabilities: z.object({
     cpu: capabilitySchema,
-    gpu: z.object({ mode: gpuModeSchema, reason: z.string().nullable() }),
+    gpu: z.object({ utilization: capabilitySchema, memory: capabilitySchema }),
     network: capabilitySchema,
     release: capabilitySchema,
   }),
@@ -51,4 +50,3 @@ export const terminateProcessRpc = defineRpc({
 export type ProcessUsage = z.infer<typeof processUsageSchema>;
 export type ProcessStats = z.infer<typeof processStatsSchema>;
 export type TerminateResult = z.infer<typeof terminateResultSchema>;
-export type GpuMode = z.infer<typeof gpuModeSchema>;

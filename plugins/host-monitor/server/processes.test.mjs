@@ -27,11 +27,29 @@ test("CPU 差值需要同一身份和有效基线", () => {
   assert.equal(cpuPercent({ ticks: 20, startTime: "7" }, current, 100, 4), 40);
 });
 
-test("GPU 缺少 SM 数值时使用显存，不伪造利用率", () => {
+test("GPU 缺少 SM 数值时保留显存，不伪造利用率", () => {
   const gpu = parseGpu("42, python, 100\n42, python, 50\n", "0 42 C - - - - python\n");
-  assert.equal(gpu.mode, "memory");
+  assert.equal(gpu.capabilities.utilization.available, false);
+  assert.equal(gpu.capabilities.memory.available, true);
   assert.equal(gpu.memory.get(42), 150 * 1024 * 1024);
   assert.equal(gpu.utilization.get(42), undefined);
+});
+
+test("显存查询失败时保留 SM 零值和多卡之和", () => {
+  const gpu = parseGpu(null, "0 42 C 0 - - - python\n1 42 C 25 - - - python\n0 43 C 0 - - - python\n");
+  assert.equal(gpu.capabilities.memory.available, false);
+  assert.equal(gpu.capabilities.utilization.available, true);
+  assert.equal(gpu.utilization.get(42), 25);
+  assert.equal(gpu.utilization.get(43), 0);
+  assert.equal(gpu.memory.size, 0);
+});
+
+test("pmon 失败不影响显存，缺测显存不转成零", () => {
+  const gpu = parseGpu("42, python, N/A\n43, python, 0\n", null);
+  assert.equal(gpu.capabilities.utilization.available, false);
+  assert.equal(gpu.capabilities.memory.available, true);
+  assert.equal(gpu.memory.get(42), undefined);
+  assert.equal(gpu.memory.get(43), 0);
 });
 
 test("TCP 按 socket 差分，忽略新连接、关闭连接和多所有者", () => {

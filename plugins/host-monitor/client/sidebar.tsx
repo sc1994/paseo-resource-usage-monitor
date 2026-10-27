@@ -432,6 +432,19 @@ function HostOverview({ theme }: { theme: PluginTheme }) {
         values={history.map((s) => s.memoryPercent)}
         detail={memoryDetail(memory)}
       />
+      {data.gpu.devices.length ? data.gpu.devices.map((gpu) => (
+        <View key={gpu.index} style={{ gap: 5, minWidth: 0 }}>
+          <Text numberOfLines={1} style={{ color: theme.colors.foreground, fontSize: FONT_SIZE }}>GPU {gpu.index} · {gpu.name}</Text>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 8 }}>
+            <Text style={{ color: theme.colors.foregroundMuted, fontSize: FONT_SIZE }}>GPU利用率</Text>
+            <Text style={{ color: theme.colors.foreground, fontSize: FONT_SIZE }}>{gpu.utilizationPercent === null ? "--" : formatPercent(gpu.utilizationPercent)}</Text>
+          </View>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 8 }}>
+            <Text style={{ color: theme.colors.foregroundMuted, fontSize: FONT_SIZE }}>GPU显存</Text>
+            <Text style={{ color: theme.colors.foreground, fontSize: FONT_SIZE }}>{gpu.memoryUsedBytes === null ? "--" : formatBytes(gpu.memoryUsedBytes)} / {gpu.memoryTotalBytes === null ? "--" : formatBytes(gpu.memoryTotalBytes)}</Text>
+          </View>
+        </View>
+      )) : <Text style={{ color: theme.colors.foregroundMuted, fontSize: FONT_SIZE }}>GPU：-- · {data.gpu.reason ?? "不可用"}</Text>}
       {network ? (
         <>
           <PreviewRow

@@ -360,8 +360,8 @@ select{
 .quick-content{padding:0 6px}
 .quick-table{border-collapse:collapse;table-layout:fixed;width:100%;font-size:11px;font-variant-numeric:tabular-nums}
 .quick-table th,.quick-table td{border-bottom:1px solid var(--line);text-align:right;padding:0 2px;height:38px;overflow:hidden;white-space:nowrap}
-.quick-table th:first-child,.quick-table td:first-child{text-align:left;width:28%}
-.quick-table th:not(:first-child){width:18%}
+.quick-table th:first-child,.quick-table td:first-child{text-align:left;width:auto}
+.quick-table th:not(:first-child){width:16%}
 .quick-table th{font-weight:400;color:var(--muted)}
 .quick-table .sort{font-size:11px;min-height:36px;padding:0}
 .quick-name{overflow:hidden;text-overflow:ellipsis;font-weight:600}
@@ -645,11 +645,13 @@ const initial=[
 {name:'paseo daemon',pid:1026,user:'ai',cmd:'paseo daemon start',cpu:5.6,gpu:null,down:.1,up:.1,protected:true},
 {name:'code-server',pid:3402,user:'ai',cmd:'code-server --bind-addr 127.0.0.1:8080 /workspace',cpu:0,gpu:0,down:0,up:0},
 {name:'python worker',pid:7310,user:'ai',cmd:'python worker.py --queue inference',cpu:73.8,gpu:18.2,down:1.2,up:.4}];
-let processes=initial.map((p,i)=>({...p,memory:[268435456,2147483648,12582912,33554432,536870912,67108864,0,null][i]})),sortKey='cpu',direction='desc',selected=null,opener=null,pending=false;
-const sampleMemory=processes.map(p=>p.memory);
+let processes=initial.map((p,i)=>({...p,memory:[268435456,2147483648,12582912,33554432,536870912,67108864,0,null][i],gpuMemory:[null,2147483648,null,null,null,null,0,4294967296][i]})),sortKey='cpu',direction='desc',selected=null,opener=null,pending=false;
+const sampleMemory=processes.map(p=>p.memory),sampleGpuMemory=processes.map(p=>p.gpuMemory);
 const $=id=>document.getElementById(id),scenario=$('scenario');
 function value(p,key){
-  if(key==='gpu'&&scenario.value==='gpu'||key==='network'&&scenario.value==='network')return null;
+  if((key==='gpu'||key==='gpuMemory')&&scenario.value==='gpu'||['network','download','upload'].includes(key)&&scenario.value==='network')return null;
+  if(key==='download')return p.down;
+  if(key==='upload')return p.up;
   return key==='network'?(p.down==null||p.up==null?null:p.down+p.up):p[key]}
 
 function sorted(list,key,dir){
@@ -679,7 +681,8 @@ function esc(s){
   return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 
 function sortButton(key,label){
-  const unavailable=(key==='memory'&&!processes.some(p=>p.memory!=null))||(key==='gpu'&&scenario.value==='gpu')||(key==='network'&&scenario.value==='network');
+  if(key==='network'&&(sortKey==='download'||sortKey==='upload')){key=sortKey;label=`网络（${key==='download'?'下载':'上传'}）`}
+  const unavailable=(key==='memory'&&!processes.some(p=>p.memory!=null))||((key==='gpu'||key==='gpuMemory')&&scenario.value==='gpu')||(['network','download','upload'].includes(key)&&scenario.value==='network');
   return `<button class="sort ${sortKey===key?'active':''}" data-sort="${key}" ${unavailable?'disabled title="该资源未采集"':''}>${label} ${sortKey===key?(direction==='desc'?'↓':'↑'):'↕'}</button>`}
 
 function format(v,suffix){
@@ -705,18 +708,19 @@ function renderQuick(){
     return;
   }
   const aria=k=>sortKey===k?(direction==='desc'?'descending':'ascending'):'none';
-  const headings=[['cpu','CPU'],['memory','内存'],['gpu','GPU'],['network','网络']];
+  const headings=[['cpu','CPU'],['memory','内存'],['download','下载'],['upload','上传']];
   const rows=sorted(processes,sortKey,direction).slice(0,5).map(p=>{
-    const gpu=value(p,'gpu'),net=value(p,'network');
-    return `<tr data-quick-pid="${p.pid}"><td><div class="quick-name">${esc(p.name)}</div><div class="quick-pid">PID ${p.pid}</div></td><td>${p.cpu==null?'--':p.cpu.toFixed(1)+'%'}</td><td>${shortMemory(p.memory)}</td><td>${gpu==null?'--':gpu.toFixed(1)+'%'}</td><td>${net==null?'--':net.toFixed(1)+'M/s'}</td></tr>`;
+    const down=value(p,'download'),up=value(p,'upload');
+    return `<tr data-quick-pid="${p.pid}"><td><div class="quick-name">${esc(p.name)}</div><div class="quick-pid">PID ${p.pid}</div></td><td>${p.cpu==null?'--':p.cpu.toFixed(1)+'%'}</td><td>${shortMemory(p.memory)}</td><td>${down==null?'--':down.toFixed(1)+'M/s'}</td><td>${up==null?'--':up.toFixed(1)+'M/s'}</td></tr>`;
   }).join('');
-  quick.innerHTML=`<table id="quick-table" class="quick-table"><thead><tr><th scope="col">进程</th>${headings.map(([k,l])=>`<th scope="col" aria-sort="${aria(k)}">${sortButton(k,l)}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table>`;
+  const hiddenSort=['gpu','gpuMemory','network'].includes(sortKey)?`<div class="quick-state" style="min-height:0">当前按${{gpu:'GPU利用率',gpuMemory:'GPU显存',network:'网络'}[sortKey]}${direction==='desc'?'降序':'升序'}</div>`:'';
+  quick.innerHTML=hiddenSort+`<table id="quick-table" class="quick-table"><thead><tr><th scope="col">进程</th>${headings.map(([k,l])=>`<th scope="col" aria-sort="${aria(k)}">${sortButton(k,l)}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table>`;
 }
 function render(){
   renderQuick();
   const state=scenario.value,content=$('content'),mobile=$('mobile-sort');
   $('availability').textContent=state==='gpu'?'GPU 未检测到或不支持进程采集。':state==='network'?'网络进程采集权限不足。':'';
-  mobile.innerHTML='<span>排序</span>'+[['cpu','CPU'],['memory','内存'],['gpu','GPU'],['network','网络']].map(([k,l])=>sortButton(k,l)).join('');
+  mobile.innerHTML='<span>排序</span>'+[['cpu','CPU'],['memory','内存'],['gpu','GPU利用率'],['gpuMemory','GPU显存'],['network','网络']].map(([k,l])=>sortButton(k,l)).join('');
   $('count').textContent=(state==='empty'?0:processes.length)+' / '+(state==='empty'?0:processes.length);
   $('protection-details').textContent=processes.filter(p=>p.protected).map(p=>`PID ${p.pid} · ${p.name}：守护进程受保护`).join('；');
 if(state==='loading'||state==='error'||state==='empty'){content.innerHTML=state==='loading'?'<div class="message"><strong>正在采集进程数据</strong><span>请稍候</span></div>':state==='error'?'<div class="message"><strong>进程采集失败</strong><span>暂时无法获取进程数据</span><button class="retry" id="retry">重试</button></div>':'<div class="message"><strong>暂无进程数据</strong><span>当前没有可显示的进程</span></div>';
@@ -725,9 +729,9 @@ if(state==='loading'||state==='error'||state==='empty'){content.innerHTML=state=
   return}
 const rows=sorted(processes,sortKey,direction).map(p=>{
   const net=value(p,'network');
-  return `<tr><td><div class="name">${esc(p.name)}</div><div class="identity mono">PID ${p.pid} · ${esc(p.user)}</div></td><td class="resource" data-label="CPU">${format(value(p,'cpu'),'%')}</td><td class="resource" data-label="内存">${formatMemory(p.memory)}</td><td class="resource" data-label="GPU">${format(value(p,'gpu'),'%')}</td><td class="resource" data-label="网络">${format(net,' MB/s')}${net==null?'':`<div class="network-detail mono">↓ ${p.down.toFixed(1)} · ↑ ${p.up.toFixed(1)}</div>`}</td><td class="action">${p.protected?'<span class="protected">受保护</span>':`<button class="release" data-pid="${p.pid}">释放</button>`}</td></tr>`}).join('');
+  return `<tr><td><div class="name">${esc(p.name)}</div><div class="identity mono">PID ${p.pid} · ${esc(p.user)}</div></td><td class="resource" data-label="CPU">${format(value(p,'cpu'),'%')}</td><td class="resource" data-label="内存">${formatMemory(p.memory)}</td><td class="resource" data-label="GPU利用率">${format(value(p,'gpu'),'%')}</td><td class="resource" data-label="GPU显存">${formatMemory(value(p,'gpuMemory'))}</td><td class="resource" data-label="网络">${format(net,' MB/s')}${net==null?'':`<div class="network-detail mono">↓ ${p.down.toFixed(1)} · ↑ ${p.up.toFixed(1)}</div>`}</td><td class="action">${p.protected?'<span class="protected">受保护</span>':`<button class="release" data-pid="${p.pid}">释放</button>`}</td></tr>`}).join('');
   const aria=k=>sortKey===k?(direction==='desc'?'descending':'ascending'):'none';
-  content.innerHTML=`<table class="table"><thead><tr><th scope="col">进程</th><th scope="col" aria-sort="${aria('cpu')}">${sortButton('cpu','CPU')}</th><th scope="col" aria-sort="${aria('memory')}">${sortButton('memory','内存')}</th><th scope="col" aria-sort="${aria('gpu')}">${sortButton('gpu','GPU')}</th><th scope="col" aria-sort="${aria('network')}">${sortButton('network','网络')}</th><th scope="col">操作</th></tr></thead><tbody>${rows}</tbody></table>`}
+  content.innerHTML=`<table class="table"><thead><tr><th scope="col">进程</th><th scope="col" aria-sort="${aria('cpu')}">${sortButton('cpu','CPU')}</th><th scope="col" aria-sort="${aria('memory')}">${sortButton('memory','内存')}</th><th scope="col" aria-sort="${aria('gpu')}">${sortButton('gpu','GPU利用率')}</th><th scope="col" aria-sort="${aria('gpuMemory')}">${sortButton('gpuMemory','GPU显存')}</th><th scope="col" aria-sort="${aria(['download','upload'].includes(sortKey)?sortKey:'network')}">${sortButton('network','网络')}</th><th scope="col">操作</th></tr></thead><tbody>${rows}</tbody></table>`}
 $('details-toggle').onclick=()=>{const details=$('collection-details');details.hidden=!details.hidden;$('details-toggle').setAttribute('aria-expanded',String(!details.hidden));$('details-toggle').textContent=`采集说明 ${details.hidden?'↓':'↑'}`};
 document.addEventListener('click',e=>{
   const button=e.target.closest('[data-sort]');
@@ -740,14 +744,14 @@ document.addEventListener('click',e=>{
   selected=p;
   opener=release;
   $('dialog-error').hidden=true;
-  $('details').innerHTML=`<div class="detail-row"><span>进程</span><strong>${esc(p.name)} · PID ${p.pid}</strong></div><div class="detail-row"><span>用户</span><span>${esc(p.user)}</span></div><div class="detail-row"><span>命令</span><span class="mono command">${esc(p.cmd)}</span></div><div class="detail-row"><span>资源</span><span>CPU ${p.cpu==null?'--':p.cpu.toFixed(1)+'%'} · 内存 ${formatMemory(p.memory)} · GPU ${value(p,'gpu')==null?'--':p.gpu.toFixed(1)+'%'} · 网络 ${value(p,'network')==null?'--':value(p,'network').toFixed(1)+' MB/s'}</span></div>`;
+  $('details').innerHTML=`<div class="detail-row"><span>进程</span><strong>${esc(p.name)} · PID ${p.pid}</strong></div><div class="detail-row"><span>用户</span><span>${esc(p.user)}</span></div><div class="detail-row"><span>命令</span><span class="mono command">${esc(p.cmd)}</span></div><div class="detail-row"><span>资源</span><span>CPU ${p.cpu==null?'--':p.cpu.toFixed(1)+'%'} · 内存 ${formatMemory(p.memory)} · GPU利用率 ${value(p,'gpu')==null?'--':p.gpu.toFixed(1)+'%'} · GPU显存 ${formatMemory(value(p,'gpuMemory'))} · 网络 ${value(p,'network')==null?'--':value(p,'network').toFixed(1)+' MB/s'}</span></div>`;
   $('confirm').showModal()});
 scenario.addEventListener('change',()=>{
   const focusedSort = document.activeElement.matches('[data-sort]') ? document.activeElement : null;
   const focusedKey = focusedSort?.dataset.sort;
   const focusedRegion = focusedSort && (focusedSort.closest('#mobile-sort') || $('content'));
-  processes=initial.map((p,i)=>({...p,memory:sampleMemory[i]}));
-  if((sortKey==='gpu'&&scenario.value==='gpu')||(sortKey==='network'&&scenario.value==='network')){sortKey='cpu';
+  processes=initial.map((p,i)=>({...p,memory:sampleMemory[i],gpuMemory:sampleGpuMemory[i]}));
+  if(((sortKey==='gpu'||sortKey==='gpuMemory')&&scenario.value==='gpu')||(['network','download','upload'].includes(sortKey)&&scenario.value==='network')){sortKey='cpu';
   direction='desc'}
   $('toast').innerHTML='';
   render();
@@ -807,6 +811,7 @@ document.addEventListener('click',e=>{
 showView();
 const metricData=[['▦','CPU · 12 核','68%',false,[12,18,25,31,38,43,56,48,36,29,37,55,68,59,43,39,44,52,46,41,54,62,48,42]],['▥','RAM · 21.8 GB / 32 GB','68%',false,[38,40,42,43,45,44,47,48,49,51,52,54,56,57,58,60,61,62,63,64,65,67,68,68]],['↓','下载','28.4 MB/s',true,[4,7,5,8,23,12,9,6,35,12,9,6,42,20,7,10,8,38,14,9,12,49,22,15]],['↑','上传','12.4 MB/s',true,[3,5,4,3,6,7,5,8,5,4,10,5,6,7,18,7,4,6,8,7,12,5,6,8]]];
   $('metrics').innerHTML=metricData.map(([icon,label,v,green,bars])=>`<div class="metric"><div class="metric-head"><span>${icon}　${label}</span><strong class="mono">${v}</strong></div><div class="bars ${green?'green':''}" aria-hidden="true">${bars.map(n=>`<i style="height:${n}%"></i>`).join('')}</div></div>`).join('');
+  $('metrics').insertAdjacentHTML('beforeend','<div class="metric"><div class="metric-head"><span>GPU 0 · NVIDIA 示例显卡</span></div><div class="metric-head"><span>GPU利用率</span><strong>42%</strong></div><div class="metric-head"><span>GPU显存</span><strong>4.0 GiB / 12.0 GiB</strong></div></div>');
   render();
 // 手动自检入口：在浏览器控制台调用 hostMonitorSelfCheck()。
 window.hostMonitorSelfCheck=()=>{
@@ -817,6 +822,10 @@ window.hostMonitorSelfCheck=()=>{
   const memoryItems=[{pid:4,memory:null},{pid:3,memory:0},{pid:1,memory:0},{pid:2,memory:1024}];
   if(sorted(memoryItems,'memory','asc').map(p=>p.pid).join()!=='1,3,2,4')throw new Error('内存升序失败');
   if(sorted(memoryItems,'memory','desc').map(p=>p.pid).join()!=='2,1,3,4')throw new Error('内存降序失败');
+  const gpuItems=[{pid:1,gpu:9,gpuMemory:0},{pid:2,gpu:0,gpuMemory:1024},{pid:3,gpu:null,gpuMemory:null}];
+  if(sorted(gpuItems,'gpu','desc').map(p=>p.pid).join()!=='1,2,3'||sorted(gpuItems,'gpuMemory','desc').map(p=>p.pid).join()!=='2,1,3')throw new Error('GPU 利用率与显存独立排序失败');
+  const networkItems=[{pid:1,down:10,up:0},{pid:2,down:0,up:10},{pid:3,down:null,up:5}];
+  if(sorted(networkItems,'download','desc').map(p=>p.pid).join()!=='1,2,3'||sorted(networkItems,'upload','desc').map(p=>p.pid).join()!=='2,3,1')throw new Error('下载与上传独立排序失败');
   if(shortMemory(0)!=='0B'||shortMemory(null)!=='--')throw new Error('浮窗内存缺测或零值失败');
   if(canRelease(initial.find(p=>p.protected)))throw new Error('受保护进程可释放');
   return '自检通过'}finally{scenario.value=old}};
