@@ -1,6 +1,14 @@
 import { defineRpc } from "@getpaseo/plugin";
 import { z } from "zod";
 
+const gpuDeviceSchema = z.object({
+  index: z.number().int().nonnegative(),
+  name: z.string(),
+  utilizationPercent: z.number().nullable(),
+  memoryUsedBytes: z.number().nullable(),
+  memoryTotalBytes: z.number().nullable(),
+});
+
 const sampleSchema = z.object({
   at: z.number(),
   cpuPercent: z.number(),
@@ -8,6 +16,7 @@ const sampleSchema = z.object({
   diskPercent: z.number().nullable(),
   rxBytesPerSec: z.number(),
   txBytesPerSec: z.number(),
+  gpus: z.array(gpuDeviceSchema),
 });
 
 const diskSchema = z.object({
@@ -42,13 +51,7 @@ export const hostStatsRpc = defineRpc({
     loadAverage: z.tuple([z.number(), z.number(), z.number()]),
     memory: memorySchema,
     gpu: z.object({
-      devices: z.array(z.object({
-        index: z.number().int().nonnegative(),
-        name: z.string(),
-        utilizationPercent: z.number().nullable(),
-        memoryUsedBytes: z.number().nullable(),
-        memoryTotalBytes: z.number().nullable(),
-      })),
+      devices: z.array(gpuDeviceSchema),
       reason: z.string().nullable(),
     }),
     network: z
@@ -65,6 +68,22 @@ export type HostSample = z.infer<typeof sampleSchema>;
 export type DiskUsage = z.infer<typeof diskSchema>;
 export type MemoryUsage = z.infer<typeof memorySchema>;
 export type MemoryPressure = NonNullable<MemoryUsage["pressure"]>;
+
+export function gpuHistory(samples: readonly HostSample[], index: number): {
+  utilizationPercent: (number | null)[];
+  memoryPercent: (number | null)[];
+} {
+  const utilizationPercent: (number | null)[] = [];
+  const memoryPercent: (number | null)[] = [];
+  for (const sample of samples) {
+    const gpu = sample.gpus.find((device) => device.index === index);
+    utilizationPercent.push(gpu?.utilizationPercent ?? null);
+    memoryPercent.push(gpu && gpu.memoryUsedBytes !== null && gpu.memoryTotalBytes !== null && gpu.memoryTotalBytes > 0
+      ? (gpu.memoryUsedBytes / gpu.memoryTotalBytes) * 100
+      : null);
+  }
+  return { utilizationPercent, memoryPercent };
+}
 
 /** Like df: the share of the space a user can fill, excluding blocks reserved for root. */
 export function diskPercent(disk: Pick<DiskUsage, "usedBytes" | "availableBytes">): number {

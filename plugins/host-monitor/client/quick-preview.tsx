@@ -10,7 +10,7 @@ import { memoryPercent, scaleToPeak, Sparkline, useHostStats } from "./stats";
 
 const previewKeys = ["cpu", "memory", "download", "upload"] as const;
 
-export function HostQuickPreview({ theme, host, openScreen }: PluginPopoverProps) {
+export function HostQuickPreview({ theme, host, layout, openScreen }: PluginPopoverProps) {
   const stats = useHostStats();
   const { query, data, labels, disabled, activeSort, activeDirection, groups, changeSort } = useProcessState(host.id);
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
@@ -31,7 +31,7 @@ export function HostQuickPreview({ theme, host, openScreen }: PluginPopoverProps
     { label: "网络", value: current.network ? `↓${formatCompactRate(current.current.rxBytesPerSec)}/s\n↑${formatCompactRate(current.current.txBytesPerSec)}/s` : "--", values: scaleToPeak(history, (sample) => sample.rxBytesPerSec + sample.txBytesPerSec), color: theme.colors.accent },
   ] : [];
 
-  return <View onLayout={(event) => setWidth(event.nativeEvent.layout.width)} style={{ width: 396, maxWidth: "100%", height: Math.max(0, Math.min(376, height - 120)), minWidth: 0, gap: 4 }}>
+  return <View onLayout={(event) => setWidth(event.nativeEvent.layout.width)} style={[{ minWidth: 0, gap: 4 }, layout.compact ? { width: "100%", flex: 1, minHeight: 0 } : { width: 396, maxWidth: "100%", height: Math.max(0, Math.min(376, height - 120)) }]}>
     <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
       <Text numberOfLines={1} style={{ flex: 1, color: fg, fontWeight: "600", fontSize: 14 }}>{current?.hostname ?? host.label}</Text>
       {stats.isError || !current ? <Text style={{ color: muted, fontSize: 11 }}>{stats.isError ? "主机采样失败" : "正在采样"}</Text> : null}
