@@ -1,7 +1,7 @@
 import type { PluginTheme, RpcOutput } from "@getpaseo/plugin";
 import type { PluginScreenProps, PluginSidebarItemProps } from "@getpaseo/plugin/client";
-import { Icon, ScrollView } from "@getpaseo/plugin/client/ui";
-import { useCallback, useState } from "react";
+import { Icon, Modal, ScrollView } from "@getpaseo/plugin/client/ui";
+import { useCallback, useEffect, useState } from "react";
 import {
   Pressable,
   Text,
@@ -9,7 +9,7 @@ import {
   type LayoutChangeEvent,
   type PressableStateCallbackType,
 } from "react-native";
-import { diskPercent, sumDisks, type hostStatsRpc } from "../shared/stats";
+import { diskPercent, gpuHistory, sumDisks, type hostStatsRpc } from "../shared/stats";
 import { ProcessPanel } from "./processes";
 import { HostQuickPreview } from "./quick-preview";
 import { formatBytes, formatCompactRate, formatPercent, formatRate, formatUptime } from "./format";
@@ -235,10 +235,14 @@ function layoutWidth(event: LayoutChangeEvent): number {
   return event.nativeEvent.layout.width;
 }
 
-export function HostStatusItem({ theme, openPopover }: PluginSidebarItemProps) {
+export function HostStatusItem({ theme, host, layout: hostLayout, openPopover, openScreen }: PluginSidebarItemProps) {
   const { data } = useHostStats();
+  const [modalOpen, setModalOpen] = useState(false);
   const [available, setAvailable] = useState<number | null>(null);
   const [measuredSlot, setMeasuredSlot] = useState<number | null>(null);
+  useEffect(() => {
+    if (!hostLayout.compact) setModalOpen(false);
+  }, [hostLayout.compact]);
   const onAvailable = useCallback((e: LayoutChangeEvent) => setAvailable(layoutWidth(e)), []);
   const onTemplate = useCallback((e: LayoutChangeEvent) => {
     const width = Math.ceil(layoutWidth(e));
@@ -252,10 +256,11 @@ export function HostStatusItem({ theme, openPopover }: PluginSidebarItemProps) {
   const layout = chooseLayout(available, metrics, slotWidth);
 
   return (
+    <>
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={describe(data)}
-      onPress={() => openPopover(HostQuickPreview)}
+      onPress={() => hostLayout.compact ? setModalOpen(true) : openPopover(HostQuickPreview)}
       style={triggerStyle(theme)}
     >
       <View
@@ -282,6 +287,18 @@ export function HostStatusItem({ theme, openPopover }: PluginSidebarItemProps) {
         ))}
       </View>
     </Pressable>
+    <Modal title="主机状态" open={hostLayout.compact && modalOpen} onOpenChange={setModalOpen}>
+      <Modal.Content scrollable={false} contentContainerStyle={{ padding: 12, gap: 0 }}>
+        <HostQuickPreview
+          theme={theme}
+          host={host}
+          layout={hostLayout}
+          close={() => setModalOpen(false)}
+          openScreen={(input) => { setModalOpen(false); openScreen(input); }}
+        />
+      </Modal.Content>
+    </Modal>
+    </>
   );
 }
 
@@ -430,19 +447,23 @@ function HostOverview({ theme }: { theme: PluginTheme }) {
         values={history.map((s) => s.memoryPercent)}
         detail={memoryDetail(memory)}
       />
-      {data.gpu.devices.length ? data.gpu.devices.map((gpu) => (
+      {data.gpu.devices.length ? data.gpu.devices.map((gpu) => {
+        const gpuValues = gpuHistory(history, gpu.index);
+        return (
         <View key={gpu.index} style={{ gap: 5, minWidth: 0 }}>
           <Text numberOfLines={1} style={{ color: theme.colors.foreground, fontSize: FONT_SIZE }}>GPU {gpu.index} · {gpu.name}</Text>
           <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 8 }}>
             <Text style={{ color: theme.colors.foregroundMuted, fontSize: FONT_SIZE }}>GPU利用率</Text>
             <Text style={{ color: theme.colors.foreground, fontSize: FONT_SIZE }}>{gpu.utilizationPercent === null ? "--" : formatPercent(gpu.utilizationPercent)}</Text>
           </View>
+          <Sparkline values={gpuValues.utilizationPercent} color={gpu.utilizationPercent === null ? theme.colors.foregroundMuted : loadColor(theme, gpu.utilizationPercent)} height={18} />
           <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 8 }}>
             <Text style={{ color: theme.colors.foregroundMuted, fontSize: FONT_SIZE }}>GPU显存</Text>
             <Text style={{ color: theme.colors.foreground, fontSize: FONT_SIZE }}>{gpu.memoryUsedBytes === null ? "--" : formatBytes(gpu.memoryUsedBytes)} / {gpu.memoryTotalBytes === null ? "--" : formatBytes(gpu.memoryTotalBytes)}</Text>
           </View>
+          <Sparkline values={gpuValues.memoryPercent} color={theme.colors.foregroundMuted} height={18} />
         </View>
-      )) : <Text style={{ color: theme.colors.foregroundMuted, fontSize: FONT_SIZE }}>GPU：-- · {data.gpu.reason ?? "不可用"}</Text>}
+      ); }) : <Text style={{ color: theme.colors.foregroundMuted, fontSize: FONT_SIZE }}>GPU：-- · {data.gpu.reason ?? "不可用"}</Text>}
       {network ? (
         <>
           <PreviewRow

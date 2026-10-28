@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { parseHostGpu } from "./sampler.ts";
-import { diskPercent, sumDisks } from "../shared/stats.ts";
+import { diskPercent, gpuHistory, sumDisks } from "../shared/stats.ts";
 
 test("磁盘使用率排除预留块并按容量汇总", () => {
   const disks = [
@@ -21,4 +21,30 @@ test("主机 GPU 独立解析零值、缺测和 MiB", () => {
     { index: 1, name: "GPU B", utilizationPercent: null, memoryUsedBytes: null, memoryTotalBytes: 16 * 1024 * 1024 },
     { index: 2, name: "GPU C", utilizationPercent: null, memoryUsedBytes: null, memoryTotalBytes: null },
   ]);
+});
+
+test("GPU 历史按设备索引保留零值和各项缺测", () => {
+  const device = (index, utilizationPercent, memoryUsedBytes, memoryTotalBytes) => ({
+    index, name: `GPU ${index}`, utilizationPercent, memoryUsedBytes, memoryTotalBytes,
+  });
+  const sample = (gpus) => ({
+    at: 0, cpuPercent: 0, memoryPercent: 0, diskPercent: null,
+    rxBytesPerSec: 0, txBytesPerSec: 0, gpus,
+  });
+  const samples = [
+    sample([device(1, 99, 90, 100), device(0, 0, 0, 100)]),
+    sample([device(0, null, 25, 100), device(1, 88, 80, 100)]),
+    sample([device(1, 77, 70, 100)]),
+    sample([device(0, 40, null, 100)]),
+    sample([device(0, 50, 10, 0)]),
+    sample([device(0, 60, 10, null)]),
+  ];
+  assert.deepEqual(gpuHistory(samples, 0), {
+    utilizationPercent: [0, null, null, 40, 50, 60],
+    memoryPercent: [0, 25, null, null, null, null],
+  });
+  assert.deepEqual(gpuHistory(samples, 1), {
+    utilizationPercent: [99, 88, 77, null, null, null],
+    memoryPercent: [90, 80, 70, null, null, null],
+  });
 });

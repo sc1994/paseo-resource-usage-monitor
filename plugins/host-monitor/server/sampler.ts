@@ -319,6 +319,7 @@ export function startSampler(): { read(): Promise<HostStats>; stop(): void } {
       diskPercent: diskUsagePercent,
       rxBytesPerSec: net && previousNet ? Math.max(net.rx - previousNet.rx, 0) / seconds : 0,
       txBytesPerSec: net && previousNet ? Math.max(net.tx - previousNet.tx, 0) / seconds : 0,
+      gpus: gpu.devices,
     };
     history.push(sample);
     if (history.length > HISTORY_LENGTH) history.shift();
@@ -377,6 +378,7 @@ export function startSampler(): { read(): Promise<HostStats>; stop(): void } {
           diskPercent: null,
           rxBytesPerSec: 0,
           txBytesPerSec: 0,
+          gpus: [],
         },
         history: [...history],
       };

@@ -14,7 +14,7 @@ const REFRESH_MS = 2000;
 export function useHostStats() {
   const getStats = useRpc(hostStatsRpc);
   return useQuery({
-    queryKey: ["host-stats", "disk-history-v1"],
+    queryKey: ["host-stats", "gpu-history-v1"],
     queryFn: () => getStats({}),
     refetchInterval: REFRESH_MS,
   });
@@ -103,7 +103,7 @@ export function Meter({
 
 interface SparklineProps {
   /** Values on a 0-100 scale, oldest first. */
-  values: readonly number[];
+  values: readonly (number | null)[];
   color: string;
   height: number;
 }
@@ -116,7 +116,7 @@ export function Sparkline({ values, color, height }: SparklineProps) {
           key={index}
           style={{
             flex: 1,
-            height: Math.max(1, (Math.min(value, 100) / 100) * height),
+            height: value === null ? 0 : Math.max(1, (Math.min(value, 100) / 100) * height),
             backgroundColor: color,
             opacity: 0.6,
           }}

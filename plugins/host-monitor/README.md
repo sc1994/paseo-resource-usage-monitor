@@ -1,6 +1,6 @@
 # 主机资源监控
 
-在 Paseo 侧栏查看 daemon 宿主机的 CPU、内存、磁盘和网络，点击状态条打开紧凑浮窗，按进程名聚合后查看前 5 组的 CPU、内存、下载和上传并进入资源详情；多成员组可展开逐 PID 查看，详情支持逐进程释放。进程内存为 RSS，详情的 GPU 利用率和显存独立显示和排序。桌面浮窗由宿主限制宽度至 420px，内容固定高度并在框内滚动进程列表；手机使用底部抽屉。CPU、内存、磁盘和网络小图显示最近约 48 秒的历史，磁盘数据每 30 秒更新一次，首次采集前显示缺测。功能、采样口径和限制见 [OVERVIEW.md](OVERVIEW.md)。
+在 Paseo 侧栏查看 daemon 宿主机的 CPU、内存、磁盘和网络，点击状态条打开紧凑浮窗，按进程名聚合后查看前 5 组的 CPU、内存、下载和上传并进入资源详情；多成员组可展开逐 PID 查看，详情支持逐进程释放。进程内存为 RSS，详情的 GPU 利用率和显存独立显示和排序。桌面浮窗由宿主限制宽度至 420px，内容固定高度并在框内滚动进程列表；手机使用有界底部抽屉，进程列表为单个滚动区。CPU、内存、磁盘和网络小图显示最近约 48 秒的历史；资源详情为每张 GPU 分别显示最近约 3 分钟的利用率和显存容量占比，文字保留已用/总量，缺测留空，不平均多卡。磁盘数据每 30 秒更新一次，首次采集前显示缺测。功能、采样口径和限制见 [OVERVIEW.md](OVERVIEW.md)。
 
 基于 [a31521424/paseo-kit](https://github.com/a31521424/paseo-kit) 的 host-monitor 插件开发，保留原项目 Apache-2.0 许可证及来源归属。
 
@@ -17,7 +17,7 @@ paseo plugin disable host-monitor
 从本 fork 的功能分支安装，插件 ID 为 `paseo-resource-usage-monitor`：
 
 ```bash
-paseo plugin install github:sc1994/paseo-resource-usage-monitor:plugins/host-monitor --ref fix/host-preview-fixed-layout
+paseo plugin install github:sc1994/paseo-resource-usage-monitor:plugins/host-monitor --ref feat/gpu-history-mobile-sheet
 ```
 
 也可从本地仓库安装：
@@ -28,7 +28,7 @@ npm ci
 paseo plugin install "$PWD"
 ```
 
-原版 `host-monitor` 保持禁用，无需移除或重启 daemon。PR 合并前，普通 `paseo plugin update paseo-resource-usage-monitor` 会跟随仓库默认 `main`，不是本功能分支；需要更新分支时显式指定 `--ref fix/host-preview-fixed-layout`。
+原版 `host-monitor` 保持禁用，无需移除或重启 daemon。PR 合并前，普通 `paseo plugin update paseo-resource-usage-monitor` 会跟随仓库默认 `main`，不是本功能分支；需要更新分支时显式指定 `--ref feat/gpu-history-mobile-sheet`。
 
 回滚时禁用本插件并重新启用原版：
 
