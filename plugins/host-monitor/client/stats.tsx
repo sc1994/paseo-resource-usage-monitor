@@ -4,7 +4,6 @@ import { useQuery } from "@tanstack/react-query";
 import { View, type ViewStyle } from "react-native";
 import {
   hostStatsRpc,
-  type DiskUsage,
   type HostSample,
   type MemoryPressure,
   type MemoryUsage,
@@ -15,7 +14,7 @@ const REFRESH_MS = 2000;
 export function useHostStats() {
   const getStats = useRpc(hostStatsRpc);
   return useQuery({
-    queryKey: ["host-stats", "gpu-v2"],
+    queryKey: ["host-stats", "disk-history-v1"],
     queryFn: () => getStats({}),
     refetchInterval: REFRESH_MS,
   });
@@ -51,23 +50,6 @@ export function memoryPercent(memory: Pick<MemoryUsage, "usedBytes" | "totalByte
  */
 export function memorySeverity(memory: MemoryUsage): Severity {
   return memory.pressure ?? percentSeverity(memoryPercent(memory));
-}
-
-/** Like df: the share of the space a user can fill, so a disk at 100% really has no room left. */
-export function diskPercent(disk: Pick<DiskUsage, "usedBytes" | "availableBytes">): number {
-  const usable = disk.usedBytes + disk.availableBytes;
-  return usable > 0 ? (disk.usedBytes / usable) * 100 : 0;
-}
-
-/** All disks added together, as one figure for the sidebar. */
-export function sumDisks(disks: readonly DiskUsage[]) {
-  const sum = { totalBytes: 0, usedBytes: 0, availableBytes: 0 };
-  for (const disk of disks) {
-    sum.totalBytes += disk.totalBytes;
-    sum.usedBytes += disk.usedBytes;
-    sum.availableBytes += disk.availableBytes;
-  }
-  return { ...sum, percent: diskPercent(sum) };
 }
 
 export function scaleToPeak(samples: readonly HostSample[], pick: (s: HostSample) => number) {

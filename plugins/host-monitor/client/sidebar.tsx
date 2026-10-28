@@ -9,21 +9,19 @@ import {
   type LayoutChangeEvent,
   type PressableStateCallbackType,
 } from "react-native";
-import type { hostStatsRpc } from "../shared/stats";
+import { diskPercent, sumDisks, type hostStatsRpc } from "../shared/stats";
 import { ProcessPanel } from "./processes";
 import { HostQuickPreview } from "./quick-preview";
 import { formatBytes, formatCompactRate, formatPercent, formatRate, formatUptime } from "./format";
 import {
   Meter,
   Sparkline,
-  diskPercent,
   loadColor,
   memoryPercent,
   memorySeverity,
   percentSeverity,
   scaleToPeak,
   severityColor,
-  sumDisks,
   useHostStats,
   type Severity,
 } from "./stats";

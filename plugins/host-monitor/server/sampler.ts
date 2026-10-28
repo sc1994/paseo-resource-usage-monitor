@@ -4,6 +4,7 @@ import { statfs } from "node:fs/promises";
 import os from "node:os";
 import { promisify } from "node:util";
 import type { RpcOutput } from "@getpaseo/plugin";
+import { sumDisks } from "../shared/stats.ts";
 import type { hostStatsRpc } from "../shared/stats";
 import type { DiskUsage, HostSample, MemoryPressure, MemoryUsage } from "../shared/stats";
 
@@ -269,6 +270,7 @@ export function startSampler(): { read(): Promise<HostStats>; stop(): void } {
   let previousAt = Date.now();
   let networkTotals = previousNet;
   let disks: DiskUsage[] = [];
+  let diskUsagePercent: number | null = null;
   let diskRead: Promise<void> | null = null;
   let macMemory: MemoryUsage | null = null;
   let macMemoryRead: Promise<void> | null = null;
@@ -314,6 +316,7 @@ export function startSampler(): { read(): Promise<HostStats>; stop(): void } {
       at: now,
       cpuPercent: totalDelta > 0 ? (1 - idleDelta / totalDelta) * 100 : 0,
       memoryPercent: (memory.usedBytes / memory.totalBytes) * 100,
+      diskPercent: diskUsagePercent,
       rxBytesPerSec: net && previousNet ? Math.max(net.rx - previousNet.rx, 0) / seconds : 0,
       txBytesPerSec: net && previousNet ? Math.max(net.tx - previousNet.tx, 0) / seconds : 0,
     };
@@ -332,6 +335,7 @@ export function startSampler(): { read(): Promise<HostStats>; stop(): void } {
     diskRead = readDisks()
       .then((next) => {
         disks = next;
+        diskUsagePercent = next.length ? sumDisks(next).percent : null;
       })
       .catch(() => {})
       .finally(() => {
@@ -370,6 +374,7 @@ export function startSampler(): { read(): Promise<HostStats>; stop(): void } {
           at: Date.now(),
           cpuPercent: 0,
           memoryPercent: 0,
+          diskPercent: null,
           rxBytesPerSec: 0,
           txBytesPerSec: 0,
         },
