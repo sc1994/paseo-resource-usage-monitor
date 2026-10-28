@@ -5,6 +5,7 @@ const sampleSchema = z.object({
   at: z.number(),
   cpuPercent: z.number(),
   memoryPercent: z.number(),
+  diskPercent: z.number().nullable(),
   rxBytesPerSec: z.number(),
   txBytesPerSec: z.number(),
 });
@@ -64,3 +65,20 @@ export type HostSample = z.infer<typeof sampleSchema>;
 export type DiskUsage = z.infer<typeof diskSchema>;
 export type MemoryUsage = z.infer<typeof memorySchema>;
 export type MemoryPressure = NonNullable<MemoryUsage["pressure"]>;
+
+/** Like df: the share of the space a user can fill, excluding blocks reserved for root. */
+export function diskPercent(disk: Pick<DiskUsage, "usedBytes" | "availableBytes">): number {
+  const usable = disk.usedBytes + disk.availableBytes;
+  return usable > 0 ? (disk.usedBytes / usable) * 100 : 0;
+}
+
+/** All disks added together, as one figure for the sidebar. */
+export function sumDisks(disks: readonly DiskUsage[]) {
+  const sum = { totalBytes: 0, usedBytes: 0, availableBytes: 0 };
+  for (const disk of disks) {
+    sum.totalBytes += disk.totalBytes;
+    sum.usedBytes += disk.usedBytes;
+    sum.availableBytes += disk.availableBytes;
+  }
+  return { ...sum, percent: diskPercent(sum) };
+}
