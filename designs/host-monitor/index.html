@@ -351,23 +351,33 @@ select{
   font-size:12px
 }
 [hidden]{display:none!important}
-.quick-stage{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);width:min(480px,calc(100% - 32px));z-index:3}
-.quick-popover{background:var(--panel);border:1px solid var(--line);border-radius:6px;box-shadow:0 12px 36px #0007;max-height:min(460px,calc(100dvh - 150px));overflow-y:auto;overflow-x:hidden;margin-bottom:8px}
-.quick-head{display:flex;justify-content:space-between;align-items:center;padding:12px 14px 8px}
+.quick-stage{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);width:min(420px,calc(100% - 32px));z-index:3}
+.quick-popover{background:var(--panel);border:1px solid var(--line);border-radius:6px;box-shadow:0 12px 36px #0007;height:min(400px,calc(100dvh - 120px));overflow:hidden;margin-bottom:8px;display:flex;flex-direction:column}
+.quick-head{display:flex;justify-content:space-between;align-items:center;padding:12px 14px 8px;flex:none}
 .quick-head strong{font-size:14px}
-.quick-summary{display:flex;flex-wrap:wrap;gap:6px 14px;padding:0 14px 10px;color:var(--muted);font-size:11px}
+.quick-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 12px;padding:0 14px 10px;color:var(--muted);font-size:11px;flex:none}
 .quick-summary b{color:var(--text);font-weight:500}
-.quick-content{padding:0 6px}
+.quick-metric{display:flex;align-items:center;justify-content:space-between;gap:4px;min-width:0}
+.quick-metric-text{min-width:0;line-height:1.35}
+.quick-metric-text b{display:block;white-space:nowrap}
+.quick-sparkline{width:52px;height:18px;display:flex;align-items:end;gap:1px;flex:none}
+.quick-sparkline i{flex:1;min-width:0;background:#909b95;opacity:.65}
+.quick-sparkline.green i{background:#70b991}
+.quick-content{padding:0 6px;flex:1;min-height:0;display:flex;flex-direction:column}
+.quick-scroll{min-height:0;flex:1;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#53635a var(--panel);scrollbar-gutter:stable}
+.quick-scroll::-webkit-scrollbar{width:6px}
+.quick-scroll::-webkit-scrollbar-thumb{background:#53635a;border-radius:3px}
 .quick-table{border-collapse:collapse;table-layout:fixed;width:100%;font-size:11px;font-variant-numeric:tabular-nums}
 .quick-table th,.quick-table td{border-bottom:1px solid var(--line);text-align:right;padding:0 2px;height:38px;overflow:hidden;white-space:nowrap}
 .quick-table th:first-child,.quick-table td:first-child{text-align:left;width:auto}
 .quick-table th:not(:first-child){width:16%}
-.quick-table th{font-weight:400;color:var(--muted)}
+.quick-table th{font-weight:400;color:var(--muted);position:sticky;top:0;background:var(--panel);z-index:1}
 .quick-table .sort{font-size:11px;min-height:36px;padding:0}
 .quick-name{overflow:hidden;text-overflow:ellipsis;font-weight:600}
 .quick-pid{color:var(--muted);font-size:10px}
-.quick-state{min-height:110px;display:grid;place-content:center;text-align:center;color:var(--muted);gap:8px}
-.quick-footer{display:flex;justify-content:flex-end;padding:4px 14px}
+.quick-state{flex:1;min-height:0;display:grid;place-content:center;text-align:center;color:var(--muted);gap:8px}
+.quick-sort-note{flex:none;text-align:center;color:var(--muted);font-size:11px}
+.quick-footer{display:flex;justify-content:flex-end;padding:4px 14px;flex:none}
 .quick-footer a,.back-link{color:var(--green);display:inline-flex;align-items:center;min-height:44px;text-decoration:none}
 .back-link{margin:0 auto 8px;max-width:1200px;width:100%;padding:0 8px}
 .anchor{
@@ -616,7 +626,6 @@ dialog::backdrop{
   }
   .quick-table .sort{min-height:44px;min-width:44px}
   select,.retry,.dialog-actions button{min-height:44px}
-  .quick-summary{gap:4px 12px}
   .anchor{
     margin:0;
     gap:8px;
@@ -632,10 +641,15 @@ dialog::backdrop{
     line-height:1.6
   }
 }
+@media(max-width:350px){
+  .quick-sparkline{width:40px}
+  .quick-table th:not(:first-child){width:46px}
+  .quick-table td:not(:first-child){font-size:10px}
+}
 </style></head><body>
 <div class="preview"><div class="preview-label"><strong>Host monitor</strong>　/　交互设计稿 · 示例数据</div><label class="preview-control">预览状态 <select id="scenario"><option value="normal">正常</option><option value="gpu">GPU 未检测到 / 不支持采集</option><option value="network">网络采集权限不足</option><option value="loading">加载中</option><option value="error">采集失败</option><option value="empty">空列表</option><option value="permission">释放权限不足</option><option value="exited">进程已退出</option><option value="failed">结束失败</option></select></label></div>
 <div id="resources-view" hidden><a id="back-preview" class="back-link" href="#preview">← 返回浮窗预览</a><main class="shell"><header class="host-head"><div class="host-title"><div class="host-icon" aria-hidden="true">▦</div><div><h1>ai-vm</h1><div class="sub">Linux · 12 核 · 运行 3 天 19 小时 · 负载 4.51 / 3.26 / 2.24</div></div></div><div class="status"><span class="dot"></span>采样正常</div></header><div class="tabs" role="tablist" aria-label="主机监控视图"><button role="tab" aria-selected="true" data-tab="overview">主机概览</button><button role="tab" aria-selected="false" data-tab="process">进程</button></div><div class="columns"><section class="overview" id="overview"><h2 class="section-title">主机概览</h2><p class="section-caption">最近 60 秒</p><div id="metrics"></div><div class="disk"><div class="metric-head"><span>▤　磁盘 · 186.4 GB / 320 GB</span><strong class="mono">58%</strong></div><div class="disk-row"><div class="disk-label"><span>/</span><span class="mono">116.4 / 200 GB · 58%</span></div><div class="meter"><i style="width:58%"></i></div></div><div class="disk-row"><div class="disk-label"><span>/data</span><span class="mono">70 / 120 GB · 58%</span></div><div class="meter"><i style="width:58%"></i></div></div></div></section><section class="process mobile-hidden" id="process"><div class="process-heading"><div><h2 class="section-title">高占用进程</h2><span class="count" id="count"></span></div><button class="details-toggle" id="details-toggle" aria-expanded="false" aria-controls="collection-details">采集说明 ↓</button></div><div class="details" id="collection-details" hidden><p>-- 表示数据不可用，≥ 表示部分成员已知值之和。CPU 100% 表示占用 1 个核心；内存为 RSS，可能包含共享页，各进程相加不等于主机已用内存；网络为可归属的可见 TCP 持续连接上下行总速率，不含 UDP 和短连接。</p><div id="availability" class="availability" aria-live="polite"></div><p id="protection-details"></p></div><div class="mobile-sort" id="mobile-sort"><span>排序</span></div><div id="content"></div><div id="toast" aria-live="polite"></div></section></div></main></div>
-<div id="quick-stage" class="quick-stage"><section id="quick-popover" class="quick-popover" aria-label="主机资源快速预览"><div class="quick-head"><strong>ai-vm</strong><span id="quick-status" class="status"><span class="dot"></span>采样正常</span></div><div class="quick-summary"><span>CPU <b>68%</b></span><span>内存 <b>68%</b></span><span>磁盘 <b>58%</b></span><span>网络 <b>↓ 28.4 / ↑ 12.4 MB/s</b></span></div><div id="quick-content" class="quick-content"></div><div class="quick-footer"><a id="details-link" href="#resources">查看资源详情 →</a></div></section><button id="status-trigger" class="anchor" type="button" aria-label="主机状态摘要" aria-expanded="true" aria-controls="quick-popover"><span>▦ CPU <b class="mono">68%</b></span><span>▥ 内存 <b class="mono">68%</b></span><span>▤ 磁盘 <b class="mono">58%</b></span><span>↓↑ 网络 <b class="mono">28.4 / 12.4 MB/s</b></span></button></div>
+<div id="quick-stage" class="quick-stage"><section id="quick-popover" class="quick-popover" aria-label="主机资源快速预览"><div class="quick-head"><strong>ai-vm</strong><span id="quick-status" class="status"><span class="dot"></span>采样正常</span></div><div id="quick-summary" class="quick-summary"></div><div id="quick-content" class="quick-content"></div><div class="quick-footer"><a id="details-link" href="#resources">查看资源详情 →</a></div></section><button id="status-trigger" class="anchor" type="button" aria-label="主机状态摘要" aria-expanded="true" aria-controls="quick-popover"><span>▦ CPU <b class="mono">68%</b></span><span>▥ 内存 <b class="mono">68%</b></span><span>▤ 磁盘 <b class="mono">58%</b></span><span>↓↑ 网络 <b class="mono">28.4 / 12.4 MB/s</b></span></button></div>
 <dialog id="confirm" aria-labelledby="dialog-title"><div class="dialog-body"><h2 id="dialog-title">结束进程并释放资源？</h2><p class="warning">将中断该进程正在执行的任务，未保存的数据可能丢失。</p><div class="detail" id="details"></div><p class="dialog-error" id="dialog-error" role="alert" hidden></p></div><div class="dialog-actions"><button class="cancel" id="cancel" autofocus>取消</button><button class="danger" id="submit">结束进程</button></div></dialog>
 <script>
 const initial=[
@@ -735,8 +749,8 @@ function renderQuick(){
     return `<tr ${group?'':`data-quick-pid="${p.pid}"`}><td>${group?groupButton(p):`<div class="quick-name">${esc(p.name)}</div><div class="quick-pid">PID ${p.pid}</div>`}</td><td>${partial(p,'cpu')}${p.cpu==null?'--':p.cpu.toFixed(1)+'%'}</td><td>${partial(p,'memory')}${shortMemory(p.memory)}</td><td>${partial(p,'down')}${down==null?'--':down.toFixed(1)+'M/s'}</td><td>${partial(p,'up')}${up==null?'--':up.toFixed(1)+'M/s'}</td></tr>`;
   };
   const rows=grouped(processes,sortKey,direction).slice(0,5).map(g=>g.members.length===1?quickRow(g.members[0]):quickRow(g,true)+(expanded.has(g.name)?sorted(g.members,sortKey,direction).map(p=>quickRow(p)).join(''):'' )).join('');
-  const hiddenSort=['gpu','gpuMemory','network'].includes(sortKey)?`<div class="quick-state" style="min-height:0">当前按${{gpu:'GPU利用率',gpuMemory:'GPU显存',network:'网络'}[sortKey]}${direction==='desc'?'降序':'升序'}</div>`:'';
-  quick.innerHTML=hiddenSort+`<table id="quick-table" class="quick-table"><thead><tr><th scope="col">进程</th>${headings.map(([k,l])=>`<th scope="col" aria-sort="${aria(k)}">${sortButton(k,l)}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table>`;
+  const hiddenSort=['gpu','gpuMemory','network'].includes(sortKey)?`<div class="quick-sort-note">当前按${{gpu:'GPU利用率',gpuMemory:'GPU显存',network:'网络'}[sortKey]}${direction==='desc'?'降序':'升序'}</div>`:'';
+  quick.innerHTML=hiddenSort+`<div class="quick-scroll"><table id="quick-table" class="quick-table"><thead><tr><th scope="col">进程</th>${headings.map(([k,l])=>`<th scope="col" aria-sort="${aria(k)}">${sortButton(k,l)}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 function render(){
   renderQuick();
@@ -841,6 +855,11 @@ document.addEventListener('click',e=>{
 });
 showView();
 const metricData=[['▦','CPU · 12 核','68%',false,[12,18,25,31,38,43,56,48,36,29,37,55,68,59,43,39,44,52,46,41,54,62,48,42]],['▥','RAM · 21.8 GB / 32 GB','68%',false,[38,40,42,43,45,44,47,48,49,51,52,54,56,57,58,60,61,62,63,64,65,67,68,68]],['↓','下载','28.4 MB/s',true,[4,7,5,8,23,12,9,6,35,12,9,6,42,20,7,10,8,38,14,9,12,49,22,15]],['↑','上传','12.4 MB/s',true,[3,5,4,3,6,7,5,8,5,4,10,5,6,7,18,7,4,6,8,7,12,5,6,8]]];
+const diskHistory=[50,50,51,51,51,52,52,52,53,53,53,54,54,54,55,55,55,56,56,56,57,57,58,58];
+const networkHistory=metricData[2][4].map((n,i)=>n+metricData[3][4][i]);
+const networkPeak=Math.max(...networkHistory);
+const quickMetrics=[['CPU','68%',metricData[0][4],false],['内存','68%',metricData[1][4],false],['磁盘','58%',diskHistory,false],['网络','↓ 28.4 MB/s<br>↑ 12.4 MB/s',networkHistory.map(n=>n/networkPeak*100),true]];
+$('quick-summary').innerHTML=quickMetrics.map(([label,value,bars,green])=>`<div class="quick-metric"><div class="quick-metric-text">${label}<b class="mono">${value}</b></div><div class="quick-sparkline ${green?'green':''}" aria-hidden="true">${bars.map(n=>`<i style="height:${n}%"></i>`).join('')}</div></div>`).join('');
   $('metrics').innerHTML=metricData.map(([icon,label,v,green,bars])=>`<div class="metric"><div class="metric-head"><span>${icon}　${label}</span><strong class="mono">${v}</strong></div><div class="bars ${green?'green':''}" aria-hidden="true">${bars.map(n=>`<i style="height:${n}%"></i>`).join('')}</div></div>`).join('');
   $('metrics').insertAdjacentHTML('beforeend','<div class="metric"><div class="metric-head"><span>GPU 0 · NVIDIA 示例显卡</span></div><div class="metric-head"><span>GPU利用率</span><strong>42%</strong></div><div class="metric-head"><span>GPU显存</span><strong>4.0 GiB / 12.0 GiB</strong></div></div>');
   render();
@@ -860,6 +879,8 @@ window.hostMonitorSelfCheck=()=>{
   const networkItems=[{pid:1,down:10,up:0},{pid:2,down:0,up:10},{pid:3,down:null,up:5}];
   if(sorted(networkItems,'download','desc').map(p=>p.pid).join()!=='1,2,3'||sorted(networkItems,'upload','desc').map(p=>p.pid).join()!=='2,3,1')throw new Error('下载与上传独立排序失败');
   if(shortMemory(0)!=='0B'||shortMemory(null)!=='--')throw new Error('浮窗内存缺测或零值失败');
+  const networkBars=[...document.querySelectorAll('#quick-summary .quick-metric:last-child .quick-sparkline i')].map(bar=>parseFloat(bar.style.height));
+  if(networkBars.length!==networkHistory.length||Math.max(...networkBars)!==100)throw new Error('浮窗网络历史柱状图归一化失败');
   if(canRelease(initial.find(p=>p.protected)))throw new Error('受保护进程可释放');
   return '自检通过'}finally{scenario.value=old}};
 </script></body></html>
